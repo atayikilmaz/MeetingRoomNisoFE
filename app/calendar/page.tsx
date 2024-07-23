@@ -38,8 +38,6 @@ const InteractiveCalendar: React.FC = () => {
     setIsModalOpen(true);
   };
 
-
-
   const handleEventClick = (clickInfo: EventClickArg) => {
     const event = clickInfo.event;
     setSelectedEvent({
@@ -123,8 +121,6 @@ const InteractiveCalendar: React.FC = () => {
           eventChange={handleEventChange}
           height="auto"
           aspectRatio={1.35}
-          
-          
         />
       </div>
       <Modal
@@ -262,5 +258,4 @@ function toLocalISOString(date: Date): string {
     return new Date(isoString);
   }
 
-  
 export default InteractiveCalendar;
