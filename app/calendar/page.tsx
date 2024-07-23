@@ -224,7 +224,7 @@ const Modal: React.FC<ModalProps> = ({
           </div>
         )}
         {isDeleteMode && (
-          <p className="py-4">Are you sure you want to delete "{event?.title}"?</p>
+          <p className="py-4">Are you sure you want to delete &quot;{event?.title}&quot;?</p>
         )}
         <div className="modal-action">
           <button className="btn" onClick={onClose}>Cancel</button>
