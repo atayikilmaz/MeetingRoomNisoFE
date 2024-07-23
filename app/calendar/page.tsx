@@ -100,7 +100,7 @@ const InteractiveCalendar: React.FC = () => {
   };
 
   return (
-    <div className="p-4">
+    <div className="p-4 mt-32 mx-4 ">
       <div className="bg-white shadow-lg rounded-lg overflow-hidden text-black p-4">
         <FullCalendar
           plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
