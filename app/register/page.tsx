@@ -91,6 +91,7 @@ export default function Register() {
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
           />
+          
         </div>
         <div className="flex items-center justify-between">
           <button
