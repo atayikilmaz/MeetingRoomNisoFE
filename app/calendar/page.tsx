@@ -100,44 +100,46 @@ const InteractiveCalendar: React.FC = () => {
   };
 
   return (
-    <div className="p-4 mt-32 mx-4 ">
-      <div className="bg-white shadow-lg rounded-lg overflow-hidden text-black p-4">
-        <FullCalendar
-          plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-          headerToolbar={{
-            left: 'prev,next today',
-            center: 'title',
-            right: 'dayGridMonth,timeGridWeek,timeGridDay',
-          }}
-          initialView="dayGridMonth"
-          editable={true}
-          selectable={true}
-          selectMirror={true}
-          dayMaxEvents={true}
-          weekends={true}
-          events={events}
-          select={handleDateSelect}
-          eventClick={handleEventClick}
-          eventChange={handleEventChange}
-          height="auto"
-          aspectRatio={1.35}
+    
+      <div className="p-4 mt-32 px-6 bg-base-200 ">
+        <div className="bg-white shadow-lg rounded-lg overflow-hidden text-black p-4">
+          <FullCalendar
+            plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+            headerToolbar={{
+              left: 'prev,next today',
+              center: 'title',
+              right: 'dayGridMonth,timeGridWeek,timeGridDay',
+            }}
+            initialView="dayGridMonth"
+            editable={true}
+            selectable={true}
+            selectMirror={true}
+            dayMaxEvents={true}
+            weekends={true}
+            events={events}
+            select={handleDateSelect}
+            eventClick={handleEventClick}
+            eventChange={handleEventChange}
+            height="auto"
+            aspectRatio={1.35}
+          />
+        </div>
+        <Modal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          onConfirm={handleModalConfirm}
+          action={modalAction}
+          event={selectedEvent}
+          titleInputRef={titleInputRef}
+          participantsInputRef={participantsInputRef}
+          roomInputRef={roomInputRef}
+          startInputRef={startInputRef}
+          endInputRef={endInputRef}
+          onEdit={() => setModalAction('edit')}
+          onDelete={() => setModalAction('delete')}
         />
       </div>
-      <Modal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onConfirm={handleModalConfirm}
-        action={modalAction}
-        event={selectedEvent}
-        titleInputRef={titleInputRef}
-        participantsInputRef={participantsInputRef}
-        roomInputRef={roomInputRef}
-        startInputRef={startInputRef}
-        endInputRef={endInputRef}
-        onEdit={() => setModalAction('edit')}
-        onDelete={() => setModalAction('delete')}
-      />
-    </div>
+    
   );
 };
 

@@ -42,7 +42,7 @@ export default function Register() {
   };
 
   return (
-    <main className="flex flex-col items-center justify-center min-h-screen p-4">
+    <main className="flex flex-col items-center justify-center min-h-screen p-4 ">
       <form className="w-full max-w-md" onSubmit={handleSubmit}>
         <div className="mb-4">
           <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="name">

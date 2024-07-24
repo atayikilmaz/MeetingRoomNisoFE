@@ -34,7 +34,7 @@ export default function MeetingRooms() {
   };
 
   return (
-    <div className="bg-slate-700 p-4 flex flex-wrap justify-center relative mt-40">
+    <div className="bg-base-200 p-4 flex flex-wrap justify-center relative mt-40 ">
       <button 
         className="btn btn-primary absolute right-4 top-4 text-2xl"
         onClick={() => setIsModalOpen(true)}
