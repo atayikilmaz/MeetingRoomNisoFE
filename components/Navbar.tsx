@@ -1,7 +1,12 @@
 // components/Navbar.tsx
+"use client"
+
 import Link from 'next/link';
+import { useAuth } from '../contexts/AuthContext'; // Make sure to create this context
 
 const Navbar = () => {
+  const { user, logout } = useAuth();
+
   return (
     <div className="navbar bg-base-100 fixed top-0 left-0 right-0 z-[100] py-5">
       <div className="flex-1">
@@ -12,9 +17,19 @@ const Navbar = () => {
           <li><Link href="/">Home</Link></li>
           <li><Link href="/calendar">Calendar</Link></li>
           <li><Link href="/meeting-rooms">Meeting Rooms</Link></li>
-          <li><Link href="/manage-user">Manage User</Link></li>
-          <li><Link href="/login">Login</Link></li>
-          <li><Link href="/register">Register</Link></li>
+          {user ? (
+            <>
+              {user.role === 'Admin' && (
+                <li><Link href="/manage-user">Manage Users</Link></li>
+              )}
+              <li><button onClick={logout}>Logout</button></li>
+            </>
+          ) : (
+            <>
+              <li><Link href="/login">Login</Link></li>
+              <li><Link href="/register">Register</Link></li>
+            </>
+          )}
         </ul>
       </div>
     </div>

@@ -1,33 +1,34 @@
 "use client"
 
+
 import { useState, FormEvent } from 'react';
-import Link from 'next/link'; 
+import Link from 'next/link';
+import { useAuth } from '@/contexts/AuthContext'; // Make sure to create this context
+import { useRouter } from 'next/navigation';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const { login } = useAuth();
+  const router = useRouter();
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
     setMessage('');
 
-    // Simulate API call
     try {
-      // Replace this with your actual login logic
-      console.log('Login with:', email, password);
-      // Simulate successful login
-      setTimeout(() => {
-        setIsLoading(false);
-        setMessage('Login successful!');
-      }, 1000);
+      await login(email, password);
+      setMessage('Login successful!');
+
     } catch (error) {
       setIsLoading(false);
       setMessage('Login failed. Please try again.');
     }
   };
+
 
   return (
     <main className="flex flex-col items-center justify-center min-h-screen p-4">
@@ -66,6 +67,8 @@ export default function Login() {
           >
             {isLoading ? 'Logging in...' : 'Login'}
           </button>
+
+          
 
 
           <Link className="btn btn-warning" href="/register">

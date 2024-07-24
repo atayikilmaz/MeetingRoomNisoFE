@@ -2,38 +2,42 @@
 
 import { useState, FormEvent } from 'react';
 import Link from 'next/link';
+import { register } from '@/lib/api'; // Update this path
+import { useRouter } from 'next/navigation';
 
 export default function Register() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [username, setUsername] = useState('');
+  const [name, setName] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const router = useRouter();
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
     setMessage('');
-
-    // Validate password and confirmPassword match
+  
     if (password !== confirmPassword) {
       setMessage('Passwords do not match.');
       setIsLoading(false);
       return;
     }
-
-    // Simulate API call for registration
+  
     try {
-      console.log('Register with:', username, email, password);
-      // Simulate successful registration
-      setTimeout(() => {
-        setIsLoading(false);
-        setMessage('Registration successful!');
-      }, 1000);
+      await register(email, password, name);
+      setMessage('Registration successful!');
+      setTimeout(() => router.push('/login'), 2000);
     } catch (error) {
+      console.error('Registration error:', error);
+      if (error instanceof Error) {
+        setMessage(`Registration failed: ${error.message}`);
+      } else {
+        setMessage('Registration failed: An unknown error occurred');
+      }
+    } finally {
       setIsLoading(false);
-      setMessage('Registration failed. Please try again.');
     }
   };
 
@@ -41,16 +45,17 @@ export default function Register() {
     <main className="flex flex-col items-center justify-center min-h-screen p-4">
       <form className="w-full max-w-md" onSubmit={handleSubmit}>
         <div className="mb-4">
-          <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="username">
-            Username
+          <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="name">
+            Name
           </label>
           <input
             className="input input-bordered w-full"
-            id="username"
+            id="name"
             type="text"
-            placeholder="Username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
+            placeholder="Name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
           />
         </div>
         <div className="mb-4">
@@ -64,6 +69,7 @@ export default function Register() {
             placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            required
           />
         </div>
         <div className="mb-4">
@@ -77,6 +83,7 @@ export default function Register() {
             placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            required
           />
         </div>
         <div className="mb-6">
@@ -90,8 +97,8 @@ export default function Register() {
             placeholder="Confirm Password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
+            required
           />
-          
         </div>
         <div className="flex items-center justify-between">
           <button

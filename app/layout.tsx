@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import Navbar from '@/components/Navbar';
+import { AuthProvider } from "../contexts/AuthContext";
 
 
 const inter = Inter({ subsets: ["latin"] });
@@ -11,22 +12,20 @@ export const metadata: Metadata = {
   description: "simple meeting room booking system",
 };
 
+
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: {
+  children: React.ReactNode
+}) {
   return (
-    
     <html lang="en">
-    <head></head> {/* Ensure head is explicitly defined */}
-    <body className={inter.className}>
-      <div> {/* Wrap content inside a div */}
-        <Navbar />
-        {children}
-      </div>
-    </body>
-  </html>
-    
-  );
+      <body>
+        <AuthProvider>
+          <Navbar />
+          {children}
+        </AuthProvider>
+      </body>
+    </html>
+  )
 }
