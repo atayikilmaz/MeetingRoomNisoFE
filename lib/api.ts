@@ -38,3 +38,25 @@ export async function register(email: string, password: string, name: string) {
 }
 
 
+// New functions for meeting room operations
+export async function getMeetingRooms() {
+  return fetchWithAuth('MeetingRoom');
+}
+
+export async function createMeetingRoom(name: string) {
+  return fetchWithAuth('MeetingRoom', {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+}
+
+export async function deleteMeetingRoom(id: number) {
+  return fetchWithAuth(`MeetingRoom/${id}`, {
+    headers: {
+      'Content-Type': 'application/json',
+      // Include other headers as needed, such as Authorization
+    },
+    method: 'DELETE',
+  });
+}
+
