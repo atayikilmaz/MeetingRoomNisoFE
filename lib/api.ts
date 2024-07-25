@@ -60,3 +60,30 @@ export async function deleteMeetingRoom(id: number) {
   });
 }
 
+export async function getMeetings() {
+  return fetchWithAuth('Meetings');
+}
+
+export async function createMeeting(meetingData: any) {
+  return fetchWithAuth('Meetings', {
+    method: 'POST',
+    body: JSON.stringify(meetingData),
+  });
+}
+
+export async function updateMeeting(id: number, meetingData: any) {
+  return fetchWithAuth(`Meetings/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ ...meetingData, id }), // Include id in the body
+  });
+}
+
+export async function deleteMeeting(id: number) {
+  return fetchWithAuth(`Meetings/${id}`, {
+    method: 'DELETE',
+  });
+}
+
+export async function getUsers() {
+  return fetchWithAuth('User');
+}

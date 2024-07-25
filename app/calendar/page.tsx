@@ -1,145 +1,332 @@
-"use client"
+"use client";
 
-import React, { useState, useRef, useEffect } from 'react';
-import FullCalendar from '@fullcalendar/react';
-import dayGridPlugin from '@fullcalendar/daygrid';
-import timeGridPlugin from '@fullcalendar/timegrid';
-import interactionPlugin from '@fullcalendar/interaction';
-import { EventInput, DateSelectArg, EventClickArg, EventChangeArg } from '@fullcalendar/core';
+import React, { useState, useRef, useEffect } from "react";
+import FullCalendar from "@fullcalendar/react";
+import dayGridPlugin from "@fullcalendar/daygrid";
+import timeGridPlugin from "@fullcalendar/timegrid";
+import interactionPlugin from "@fullcalendar/interaction";
+import {
+  EventInput,
+  DateSelectArg,
+  EventClickArg,
+  EventChangeArg,
+} from "@fullcalendar/core";
+import {
+  getMeetings,
+  createMeeting,
+  updateMeeting,
+  deleteMeeting,
+  getMeetingRooms,
+  getUsers,
+} from "@/lib/api";
 
-interface MeetingEvent extends Omit<EventInput, 'start' | 'end'> {
+interface MeetingEvent extends Omit<EventInput, "start" | "end"> {
   start: string;
   end: string;
   participants?: string[];
   meetingRoom?: string;
 }
 
+interface User {
+  id: number;
+  name: string;
+}
+
 const InteractiveCalendar: React.FC = () => {
   const [events, setEvents] = useState<MeetingEvent[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalAction, setModalAction] = useState<'add' | 'edit' | 'delete' | 'view'>('add');
+  const [modalAction, setModalAction] = useState<
+    "add" | "edit" | "delete" | "view"
+  >("add");
   const [selectedEvent, setSelectedEvent] = useState<MeetingEvent | null>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
   const participantsInputRef = useRef<HTMLInputElement>(null);
-  const roomInputRef = useRef<HTMLInputElement>(null);
+  const roomInputRef = useRef<HTMLSelectElement>(null);
   const startInputRef = useRef<HTMLInputElement>(null);
   const endInputRef = useRef<HTMLInputElement>(null);
+  const [meetingRooms, setMeetingRooms] = useState<
+    { id: number; name: string }[]
+  >([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [participantInput, setParticipantInput] = useState("");
+  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
+  const [selectedUserIndex, setSelectedUserIndex] = useState(-1);
+
+  useEffect(() => {
+    fetchMeetings();
+    fetchMeetingRooms();
+    fetchUsers();
+  }, []);
+
+  const fetchUsers = async () => {
+    try {
+      const usersData = await getUsers();
+      setUsers(usersData);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+    }
+  };
+
+  const fetchMeetings = async () => {
+    try {
+      const meetingsData = await getMeetings();
+      setEvents(
+        meetingsData.map((meeting: any) => ({
+          id: meeting.id,
+          title: meeting.name,
+          start: meeting.startDateTime,
+          end: meeting.endDateTime,
+          participants: meeting.participants,
+          meetingRoom: meeting.meetingRoom,
+        }))
+      );
+    } catch (error) {
+      console.error("Error fetching meetings:", error);
+    }
+  };
+
+  const fetchMeetingRooms = async () => {
+    try {
+      const roomsData = await getMeetingRooms();
+      setMeetingRooms(roomsData);
+    } catch (error) {
+      console.error("Error fetching meeting rooms:", error);
+    }
+  };
 
   const handleDateSelect = (selectInfo: DateSelectArg) => {
     const start = selectInfo.start;
     const end = selectInfo.end;
-    
-    setSelectedEvent({
+  
+    const newEvent = {
       start: toLocalISOString(start),
-      end: toLocalISOString(new Date(end.getTime() - 1)), // Subtract 1 millisecond
+      end: toLocalISOString(new Date(end.getTime() - 1)),
       allDay: selectInfo.allDay,
-    });
-    setModalAction('add');
+    };
+    setSelectedEvent(newEvent);
+    setModalAction("add");
     setIsModalOpen(true);
+    resetModalState(newEvent);
   };
 
   const handleEventClick = (clickInfo: EventClickArg) => {
     const event = clickInfo.event;
-    setSelectedEvent({
+    let roomId = event.extendedProps.meetingRoomId;
+  
+    if (roomId === undefined && event.extendedProps.meetingRoom) {
+      const room = meetingRooms.find(
+        (room) => room.name === event.extendedProps.meetingRoom
+      );
+      roomId = room ? room.id : null;
+    }
+  
+    const selectedEvent = {
       id: event.id,
       title: event.title,
       start: toLocalISOString(event.start!),
-      end: toLocalISOString(new Date(event.end!.getTime() - 1)), // Subtract 1 millisecond
+      end: toLocalISOString(new Date(event.end!.getTime() - 1)),
       allDay: event.allDay,
       participants: event.extendedProps.participants,
-      meetingRoom: event.extendedProps.meetingRoom,
-    });
-    setModalAction('view');
+      meetingRoom: roomId ? roomId.toString() : "",
+    };
+    setSelectedEvent(selectedEvent);
+    setModalAction("view");
     setIsModalOpen(true);
+    resetModalState(selectedEvent);
   };
 
-  const handleEventChange = (changeInfo: EventChangeArg) => {
-    setEvents(prevEvents => {
-      return prevEvents.map(event => 
-        event.id === changeInfo.event.id
-          ? {
-              ...event,
-              start: changeInfo.event.start?.toISOString() || '',
-              end: changeInfo.event.end?.toISOString() || '',
-              allDay: changeInfo.event.allDay,
-            }
-          : event
-      );
-    });
-  };
-
-  const handleModalConfirm = () => {
-    if ((modalAction === 'add' || modalAction === 'edit') && titleInputRef.current) {
-      const start = fromLocalISOString(startInputRef.current?.value || '');
-      let end = fromLocalISOString(endInputRef.current?.value || '');
-      
-      // Add 1 millisecond to the end date
-      end = new Date(end.getTime() + 1);
-  
-      const newEvent: MeetingEvent = {
-        id: selectedEvent?.id || createEventId(),
-        title: titleInputRef.current.value,
-        start: start.toISOString(),
-        end: end.toISOString(),
-        allDay: start.getHours() === 0 && start.getMinutes() === 0 && end.getHours() === 0 && end.getMinutes() === 0,
-        participants: participantsInputRef.current?.value.split(',').map(p => p.trim()),
-        meetingRoom: roomInputRef.current?.value,
+  const handleEventChange = async (changeInfo: EventChangeArg) => {
+    try {
+      const id = Number(changeInfo.event.id);
+      const updatedEvent = {
+        name: changeInfo.event.title,
+        startDateTime: changeInfo.event.start?.toISOString(),
+        endDateTime: changeInfo.event.end?.toISOString(),
+        meetingRoomId: changeInfo.event.extendedProps.meetingRoomId,
+        participantIds: changeInfo.event.extendedProps.participants?.map(
+          (p: string) => Number(p)
+        ),
       };
-  
-      setEvents(prevEvents => {
-        if (modalAction === 'edit') {
-          return prevEvents.map(event => event.id === newEvent.id ? newEvent : event);
+      await updateMeeting(id, updatedEvent);
+      fetchMeetings();
+    } catch (error) {
+      console.error("Error updating meeting:", error);
+    }
+  };
+
+  const handleModalConfirm = async () => {
+    if (
+      (modalAction === "add" || modalAction === "edit") &&
+      titleInputRef.current
+    ) {
+      const start = fromLocalISOString(startInputRef.current?.value || "");
+      let end = fromLocalISOString(endInputRef.current?.value || "");
+      end = new Date(end.getTime() + 1);
+
+      const meetingData = {
+        name: titleInputRef.current.value,
+        startDateTime: start.toISOString(),
+        endDateTime: end.toISOString(),
+        meetingRoomId: Number(roomInputRef.current?.value),
+        participantIds: participantsInputRef.current?.value
+          .split(",")
+          .map((id) => Number(id.trim())),
+      };
+
+      try {
+        if (modalAction === "edit" && selectedEvent) {
+          const id = Number(selectedEvent.id);
+          await updateMeeting(id, meetingData);
         } else {
-          return [...prevEvents, newEvent];
+          await createMeeting(meetingData);
         }
-      });
-    } else if (modalAction === 'delete' && selectedEvent) {
-      setEvents(prevEvents => prevEvents.filter(event => event.id !== selectedEvent.id));
+        fetchMeetings();
+      } catch (error) {
+        console.error("Error saving meeting:", error);
+      }
+    } else if (modalAction === "delete" && selectedEvent) {
+      try {
+        await deleteMeeting(Number(selectedEvent.id));
+        fetchMeetings();
+      } catch (error) {
+        console.error("Error deleting meeting:", error);
+      }
     }
     setIsModalOpen(false);
   };
 
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+    setParticipantInput("");
+    setFilteredUsers([]);
+    setSelectedUserIndex(-1);
+    if (participantsInputRef.current) {
+      participantsInputRef.current.value = "";
+    }
+  };
+
+  const resetModalState = (event: MeetingEvent | null) => {
+    if (event) {
+      if (titleInputRef.current)
+        titleInputRef.current.value = event.title || "";
+      if (participantsInputRef.current)
+        participantsInputRef.current.value = event.participants?.join(", ") || "";
+      if (roomInputRef.current)
+        roomInputRef.current.value = event.meetingRoom || "";
+      if (startInputRef.current) startInputRef.current.value = event.start;
+      if (endInputRef.current) endInputRef.current.value = event.end;
+    } else {
+      if (titleInputRef.current) titleInputRef.current.value = "";
+      if (participantsInputRef.current) participantsInputRef.current.value = "";
+      if (roomInputRef.current) roomInputRef.current.value = "";
+      if (startInputRef.current) startInputRef.current.value = "";
+      if (endInputRef.current) endInputRef.current.value = "";
+    }
+    setParticipantInput(event?.participants?.join(", ") || "");
+    setFilteredUsers([]);
+    setSelectedUserIndex(-1);
+  };
+
+  const handleParticipantInputChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const value = e.target.value;
+    setParticipantInput(value);
+
+    const lastCommaIndex = value.lastIndexOf(",");
+    const searchTerm =
+      lastCommaIndex !== -1
+        ? value.slice(lastCommaIndex + 1).trim()
+        : value.trim();
+
+    const filtered = users.filter((user) =>
+      user.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    setFilteredUsers(filtered);
+    setSelectedUserIndex(-1);
+  };
+
+  const handleParticipantSelect = (user: User) => {
+    const currentInput = participantsInputRef.current?.value || "";
+    const lastCommaIndex = currentInput.lastIndexOf(",");
+    const newValue =
+      lastCommaIndex !== -1
+        ? currentInput.slice(0, lastCommaIndex + 1) + " " + user.name + ", "
+        : user.name + ", ";
+
+    if (participantsInputRef.current) {
+      participantsInputRef.current.value = newValue;
+    }
+    setParticipantInput(newValue);
+    setFilteredUsers([]);
+    setSelectedUserIndex(-1);
+  };
+
+  const handleParticipantKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>
+  ) => {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setSelectedUserIndex((prev) =>
+        prev < filteredUsers.length - 1 ? prev + 1 : prev
+      );
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setSelectedUserIndex((prev) => (prev > 0 ? prev - 1 : prev));
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (selectedUserIndex >= 0 && selectedUserIndex < filteredUsers.length) {
+        handleParticipantSelect(filteredUsers[selectedUserIndex]);
+      }
+    }
+  };
+
   return (
-    
-      <div className="p-4 mt-32 px-6 bg-base-200 ">
-        <div className="bg-white shadow-lg rounded-lg overflow-hidden text-black p-4">
-          <FullCalendar
-            plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-            headerToolbar={{
-              left: 'prev,next today',
-              center: 'title',
-              right: 'dayGridMonth,timeGridWeek,timeGridDay',
-            }}
-            initialView="dayGridMonth"
-            editable={true}
-            selectable={true}
-            selectMirror={true}
-            dayMaxEvents={true}
-            weekends={true}
-            events={events}
-            select={handleDateSelect}
-            eventClick={handleEventClick}
-            eventChange={handleEventChange}
-            height="auto"
-            aspectRatio={1.35}
-          />
-        </div>
-        <Modal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          onConfirm={handleModalConfirm}
-          action={modalAction}
-          event={selectedEvent}
-          titleInputRef={titleInputRef}
-          participantsInputRef={participantsInputRef}
-          roomInputRef={roomInputRef}
-          startInputRef={startInputRef}
-          endInputRef={endInputRef}
-          onEdit={() => setModalAction('edit')}
-          onDelete={() => setModalAction('delete')}
+    <div className="p-4 mt-32 px-6 bg-base-200">
+      <div className="bg-white shadow-lg rounded-lg overflow-hidden text-black p-4">
+        <FullCalendar
+          plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+          headerToolbar={{
+            left: "prev,next today",
+            center: "title",
+            right: "dayGridMonth,timeGridWeek,timeGridDay",
+          }}
+          initialView="dayGridMonth"
+          editable={true}
+          selectable={true}
+          selectMirror={true}
+          dayMaxEvents={true}
+          weekends={true}
+          events={events}
+          select={handleDateSelect}
+          eventClick={handleEventClick}
+          eventChange={handleEventChange}
+          height="auto"
+          aspectRatio={1.35}
         />
       </div>
-    
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onConfirm={handleModalConfirm}
+        action={modalAction}
+        event={selectedEvent}
+        titleInputRef={titleInputRef}
+        participantsInputRef={participantsInputRef}
+        roomInputRef={roomInputRef}
+        startInputRef={startInputRef}
+        endInputRef={endInputRef}
+        onEdit={() => setModalAction("edit")}
+        onDelete={() => setModalAction("delete")}
+        meetingRooms={meetingRooms}
+        participantInput={participantInput}
+        handleParticipantInputChange={handleParticipantInputChange}
+        handleParticipantKeyDown={handleParticipantKeyDown}
+        filteredUsers={filteredUsers}
+        handleParticipantSelect={handleParticipantSelect}
+        selectedUserIndex={selectedUserIndex}
+      />
+    </div>
   );
 };
 
@@ -147,46 +334,77 @@ interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: () => void;
-  action: 'add' | 'edit' | 'delete' | 'view';
+  action: "add" | "edit" | "delete" | "view";
   event: MeetingEvent | null;
   titleInputRef: React.RefObject<HTMLInputElement>;
   participantsInputRef: React.RefObject<HTMLInputElement>;
-  roomInputRef: React.RefObject<HTMLInputElement>;
+  roomInputRef: React.RefObject<HTMLSelectElement>;
   startInputRef: React.RefObject<HTMLInputElement>;
   endInputRef: React.RefObject<HTMLInputElement>;
   onEdit: () => void;
   onDelete: () => void;
+  meetingRooms: { id: number; name: string }[];
+  participantInput: string;
+  handleParticipantInputChange: (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => void;
+  handleParticipantKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+  filteredUsers: User[];
+  handleParticipantSelect: (user: User) => void;
+  selectedUserIndex: number;
 }
 
-const Modal: React.FC<ModalProps> = ({ 
-    isOpen, onClose, onConfirm, action, event, 
-    titleInputRef, participantsInputRef, roomInputRef, startInputRef, endInputRef,
-    onEdit, onDelete
-  }) => {
-    useEffect(() => {
-        if (event) {
-          if (titleInputRef.current) titleInputRef.current.value = event.title || '';
-          if (participantsInputRef.current) participantsInputRef.current.value = event.participants?.join(', ') || '';
-          if (roomInputRef.current) roomInputRef.current.value = event.meetingRoom || '';
-          if (startInputRef.current) startInputRef.current.value = event.start;
-          if (endInputRef.current) endInputRef.current.value = event.end;
-        }
-      }, [event, action]);
-
- 
+const Modal: React.FC<ModalProps> = ({
+  isOpen,
+  onClose,
+  onConfirm,
+  action,
+  event,
+  titleInputRef,
+  participantsInputRef,
+  roomInputRef,
+  startInputRef,
+  endInputRef,
+  onEdit,
+  onDelete,
+  meetingRooms,
+  participantInput,
+  handleParticipantInputChange,
+  handleParticipantKeyDown,
+  filteredUsers,
+  handleParticipantSelect,
+  selectedUserIndex,
+}) => {
+  useEffect(() => {
+    if (event) {
+      if (titleInputRef.current)
+        titleInputRef.current.value = event.title || "";
+      if (participantsInputRef.current)
+        participantsInputRef.current.value =
+          event.participants?.join(", ") || "";
+      if (roomInputRef.current)
+        roomInputRef.current.value = event.meetingRoom || "";
+      if (startInputRef.current) startInputRef.current.value = event.start;
+      if (endInputRef.current) endInputRef.current.value = event.end;
+    }
+  }, [event, action]);
 
   if (!isOpen) return null;
 
-  const isViewMode = action === 'view';
-  const isDeleteMode = action === 'delete';
+  const isViewMode = action === "view";
+  const isDeleteMode = action === "delete";
 
   return (
     <div className="modal modal-open">
       <div className="modal-box">
         <h3 className="font-bold text-lg">
-          {action === 'add' ? 'Add New Event' : 
-           action === 'edit' ? 'Edit Event' :
-           action === 'delete' ? 'Delete Event' : 'View Event'}
+          {action === "add"
+            ? "Add New Event"
+            : action === "edit"
+            ? "Edit Event"
+            : action === "delete"
+            ? "Delete Event"
+            : "View Event"}
         </h3>
         {!isDeleteMode && (
           <div className="space-y-4 mt-4">
@@ -197,20 +415,59 @@ const Modal: React.FC<ModalProps> = ({
               ref={titleInputRef}
               readOnly={isViewMode}
             />
-            <input
-              type="text"
-              placeholder="Participants (comma-separated)"
-              className="input input-bordered w-full"
-              ref={participantsInputRef}
-              readOnly={isViewMode}
-            />
-            <input
-              type="text"
-              placeholder="Meeting Room"
-              className="input input-bordered w-full"
-              ref={roomInputRef}
-              readOnly={isViewMode}
-            />
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Participants (comma-separated)"
+                className="input input-bordered w-full"
+                ref={participantsInputRef}
+                readOnly={isViewMode}
+                onChange={handleParticipantInputChange}
+                onKeyDown={handleParticipantKeyDown}
+                value={participantInput}
+              />
+              {filteredUsers.length > 0 && (
+                <ul className="absolute z-10 w-full bg-gray-700  rounded-md border-slate-700 mt-1 max-h-60  overflow-auto">
+                  {filteredUsers.map((user, index) => (
+                    <li
+                      key={user.id}
+                      className={`p-2 hover:bg-gray-800  cursor-pointer ${
+                        index === selectedUserIndex ? "bg-gray-800" : ""
+                      }`}
+                      onClick={() => handleParticipantSelect(user)}
+                    >
+                      {user.name}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            <div className="relative">
+              <select
+                className={`select select-bordered w-full ${
+                  isViewMode ? "custom-disabled" : ""
+                }`}
+                ref={roomInputRef}
+                disabled={isViewMode}
+              >
+                {event?.meetingRoom ? null : (
+                  <option value="">Select a meeting room</option>
+                )}
+                {meetingRooms.map((room) => (
+                  <option key={room.id} value={room.id.toString()}>
+                    {room.name}
+                  </option>
+                ))}
+              </select>
+              <style jsx>{`
+                .custom-disabled {
+                  opacity: 1;
+                  color: #a7adba;
+                  cursor: default;
+                  pointer-events: none;
+                }
+              `}</style>
+            </div>
             <input
               type="datetime-local"
               className="input input-bordered w-full"
@@ -226,18 +483,31 @@ const Modal: React.FC<ModalProps> = ({
           </div>
         )}
         {isDeleteMode && (
-          <p className="py-4">Are you sure you want to delete &quot;{event?.title}&quot;?</p>
+          <p className="py-4">
+            Are you sure you want to delete &quot;{event?.title}&quot;?
+          </p>
         )}
         <div className="modal-action">
-          <button className="btn" onClick={onClose}>Cancel</button>
+          <button className="btn" onClick={onClose}>
+            Cancel
+          </button>
+
           {isViewMode ? (
             <>
-              <button className="btn btn-primary" onClick={onEdit}>Edit</button>
-              <button className="btn btn-error" onClick={onDelete}>Delete</button>
+              <button className="btn btn-primary" onClick={onEdit}>
+                Edit
+              </button>
+              <button className="btn btn-error" onClick={onDelete}>
+                Delete
+              </button>
             </>
           ) : (
             <button className="btn btn-primary" onClick={onConfirm}>
-              {action === 'add' ? 'Add' : action === 'edit' ? 'Update' : 'Delete'}
+              {action === "add"
+                ? "Add"
+                : action === "edit"
+                ? "Update"
+                : "Delete"}
             </button>
           )}
         </div>
@@ -246,18 +516,16 @@ const Modal: React.FC<ModalProps> = ({
   );
 };
 
-function createEventId() {
-  return String(Date.now());
+function toLocalISOString(date: Date): string {
+  const offset = date.getTimezoneOffset() * 60000;
+  const localISOTime = new Date(date.getTime() - offset)
+    .toISOString()
+    .slice(0, -1);
+  return localISOTime.slice(0, 16);
 }
 
-function toLocalISOString(date: Date): string {
-    const offset = date.getTimezoneOffset() * 60000;
-    const localISOTime = (new Date(date.getTime() - offset)).toISOString().slice(0, -1);
-    return localISOTime.slice(0, 16);
-  }
-  
-  function fromLocalISOString(isoString: string): Date {
-    return new Date(isoString);
-  }
+function fromLocalISOString(isoString: string): Date {
+  return new Date(isoString);
+}
 
 export default InteractiveCalendar;
