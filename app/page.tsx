@@ -2,7 +2,7 @@
 
 export default function Home() {
   return (
-    <main className="">
+    <main className="bg-gray-700">
      
     </main>
   );

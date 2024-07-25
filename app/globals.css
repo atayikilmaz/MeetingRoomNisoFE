@@ -11,10 +11,9 @@
   }
 }
 
- body,html{
-    background: linear-gradient(180deg, rgb(118, 123, 130) 0%, rgba(60, 124, 202, 0) 100%, rgba(33, 95, 218, 0) 100%);
+body, html {
+  background: linear-gradient(180deg, #364153 0%, #364153 100%);
 }
-
 @layer utilities {
   .text-balance {
     text-wrap: balance;

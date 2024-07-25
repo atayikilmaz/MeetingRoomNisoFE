@@ -20,7 +20,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="bg-slate-700">
+      <body className="gray-700">
         <AuthProvider>
           <Navbar />
           {children}
