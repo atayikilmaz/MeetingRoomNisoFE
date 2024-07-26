@@ -5,6 +5,10 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
+import {  withAuth  } from '@/components/WithAuth';
+
+
+
 import {
   EventInput,
   DateSelectArg,
@@ -528,4 +532,9 @@ function fromLocalISOString(isoString: string): Date {
   return new Date(isoString);
 }
 
-export default InteractiveCalendar;
+
+
+
+
+export default withAuth(InteractiveCalendar, ['User', 'Admin']);
+

@@ -18,11 +18,11 @@ export default function Login() {
     e.preventDefault();
     setIsLoading(true);
     setMessage('');
-
+  
     try {
       await login(email, password);
       setMessage('Login successful!');
-
+      //router.push('/manage-users'); // Redirect to dashboard or home page
     } catch (error) {
       setIsLoading(false);
       setMessage('Login failed. Please try again.');

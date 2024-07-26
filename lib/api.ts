@@ -6,7 +6,7 @@ async function fetchWithAuth(url: string, options: RequestInit = {}) {
   const headers = {
     'Content-Type': 'application/json',
     ...options.headers,
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    Authorization: token ? `Bearer ${token}` : '',
   };
 
   const response = await fetch(`${API_BASE_URL}${url}`, {
@@ -22,12 +22,18 @@ async function fetchWithAuth(url: string, options: RequestInit = {}) {
 }
 
 export async function login(email: string, password: string) {
-  return fetchWithAuth('/auth/login', {
+  const response = await fetchWithAuth('/login', {
     method: 'POST',
     body: JSON.stringify({ email, password }),
     mode: 'no-cors'
-
   });
+
+  // Save the token to localStorage
+  if (response.token) {
+    localStorage.setItem('token', response.token);
+  }
+
+  return response;
 }
 
 export async function register(email: string, password: string, name: string) {

@@ -4,13 +4,14 @@
 import React, { useState, useEffect } from 'react';
 import MeetingRoomCard from "@/components/MeetingRoomCard";
 import { getMeetingRooms, createMeetingRoom, deleteMeetingRoom } from '@/lib/api';
+import {  withAuth  } from '@/components/WithAuth';
 
 interface MeetingRoom {
   id: number;
   name: string;
 }
 
-export default function MeetingRooms() {
+ function MeetingRooms() {
   const [meetingRooms, setMeetingRooms] = useState<MeetingRoom[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newRoomName, setNewRoomName] = useState('');
@@ -107,3 +108,6 @@ export default function MeetingRooms() {
     </div>
   );
 }
+
+export default withAuth(MeetingRooms, ['Admin']);
+

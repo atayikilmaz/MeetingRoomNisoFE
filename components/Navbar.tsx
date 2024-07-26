@@ -2,7 +2,7 @@
 "use client"
 
 import Link from 'next/link';
-import { useAuth } from '../contexts/AuthContext'; // Make sure to create this context
+import { useAuth } from '../contexts/AuthContext';
 
 const Navbar = () => {
   const { user, logout } = useAuth();
@@ -15,15 +15,17 @@ const Navbar = () => {
       <div className="flex-none">
         <ul className="menu menu-horizontal p-0">
           <li><Link href="/">Home</Link></li>
-          <li><Link href="/calendar">Calendar</Link></li>
-          <li><Link href="/meeting-rooms">Meeting Rooms</Link></li>
-          {user ? (
+          {user && (
+            <li><Link href="/calendar">Calendar</Link></li>
+          )}
+          {user && user.role === 'Admin' && (
             <>
-              {user.role === 'Admin' && (
-                <li><Link href="/manage-user">Manage Users</Link></li>
-              )}
-              <li><button onClick={logout}>Logout</button></li>
+              <li><Link href="/meeting-rooms">Meeting Rooms</Link></li>
+              <li><Link href="/manage-users">Manage Users</Link></li>
             </>
+          )}
+          {user ? (
+            <li><button onClick={logout}>Logout</button></li>
           ) : (
             <>
               <li><Link href="/login">Login</Link></li>
