@@ -55,6 +55,10 @@ const InteractiveCalendar: React.FC = () => {
   const [participantInput, setParticipantInput] = useState("");
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [selectedUserIndex, setSelectedUserIndex] = useState(-1);
+  const currentYear = new Date().getFullYear();
+  const startOfYear = `${currentYear}-01-01`;
+  const endOfYear = `${currentYear}-12-31`;
+
 
   useEffect(() => {
     fetchMeetings();
@@ -298,8 +302,9 @@ const InteractiveCalendar: React.FC = () => {
   };
 
   return (
-    <div className="p-4 mt-32 px-6 bg-base-200">
-      <div className="bg-white shadow-lg rounded-lg overflow-hidden text-black p-4">
+    <div className=" p-2 mx-2 sm:p-4 mt-32 bg-base-200 rounded-lg  sm:mx-8">
+      <div className="bg-white shadow-lg rounded-lg overflow-hidden text-black container mx-auto p-2 sm:p-4">
+        <div className="calendar-container h-[calc(100vh-12rem)] md:h-[calc(100vh-16rem)] lg:h-[calc(100vh-20rem)]">
         <FullCalendar
           plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
           headerToolbar={{
@@ -307,13 +312,20 @@ const InteractiveCalendar: React.FC = () => {
             center: "title",
             right: "dayGridMonth,timeGridWeek,timeGridDay",
           }}
+          longPressDelay={300}  
           initialView="dayGridMonth"
           editable={true}
+          slotMinTime="06:00:00"
+      slotMaxTime="24:00:00"
           selectable={true}
           selectMirror={true}
           dayMaxEvents={true}
           weekends={true}
           events={events}
+          validRange={{
+            start: startOfYear,
+            end: endOfYear,
+          }}
           select={handleDateSelect}
           eventClick={handleEventClick}
           eventChange={handleEventChange}
@@ -343,6 +355,8 @@ const InteractiveCalendar: React.FC = () => {
         selectedUserIndex={selectedUserIndex}
       />
     </div>
+    </div>
+
   );
 };
 
