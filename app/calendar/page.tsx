@@ -5,9 +5,7 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
-import {  withAuth  } from '@/components/WithAuth';
-
-
+import { withAuth } from "@/components/WithAuth";
 
 import {
   EventInput,
@@ -27,7 +25,7 @@ import {
 interface MeetingEvent extends Omit<EventInput, "start" | "end"> {
   start: string;
   end: string;
-  participants?: string[]; 
+  participants?: string[];
   meetingRoom?: string;
 }
 
@@ -58,7 +56,6 @@ const InteractiveCalendar: React.FC = () => {
   const currentYear = new Date().getFullYear();
   const startOfYear = `${currentYear}-01-01`;
   const endOfYear = `${currentYear}-12-31`;
-
 
   useEffect(() => {
     fetchMeetings();
@@ -105,7 +102,7 @@ const InteractiveCalendar: React.FC = () => {
   const handleDateSelect = (selectInfo: DateSelectArg) => {
     const start = selectInfo.start;
     const end = selectInfo.end;
-  
+
     const newEvent = {
       start: toLocalISOString(start),
       end: toLocalISOString(new Date(end.getTime() - 1)),
@@ -120,14 +117,14 @@ const InteractiveCalendar: React.FC = () => {
   const handleEventClick = (clickInfo: EventClickArg) => {
     const event = clickInfo.event;
     let roomId = event.extendedProps.meetingRoomId;
-  
+
     if (roomId === undefined && event.extendedProps.meetingRoom) {
       const room = meetingRooms.find(
         (room) => room.name === event.extendedProps.meetingRoom
       );
       roomId = room ? room.id : null;
     }
-  
+
     const selectedEvent = {
       id: event.id,
       title: event.title,
@@ -168,17 +165,17 @@ const InteractiveCalendar: React.FC = () => {
       const start = fromLocalISOString(startInputRef.current?.value || "");
       let end = fromLocalISOString(endInputRef.current?.value || "");
       end = new Date(end.getTime() + 1);
-  
+
       const participantNames = participantsInputRef.current?.value
         ? participantsInputRef.current.value
             .split(",")
-            .map(name => name.trim())
-            .filter(name => name !== "")
+            .map((name) => name.trim())
+            .filter((name) => name !== "")
         : [];
 
       const participantIds = participantNames
-        .map(name => {
-          const user = users.find(u => u.name === name);
+        .map((name) => {
+          const user = users.find((u) => u.name === name);
           return user ? user.id : null;
         })
         .filter((id): id is string => id !== null);
@@ -190,7 +187,7 @@ const InteractiveCalendar: React.FC = () => {
         meetingRoomId: Number(roomInputRef.current?.value || 0),
         participantIds: participantIds,
       };
-  
+
       try {
         if (modalAction === "edit" && selectedEvent) {
           const id = Number(selectedEvent.id);
@@ -213,7 +210,6 @@ const InteractiveCalendar: React.FC = () => {
     setIsModalOpen(false);
   };
 
-
   const handleModalClose = () => {
     setIsModalOpen(false);
     setParticipantInput("");
@@ -229,7 +225,8 @@ const InteractiveCalendar: React.FC = () => {
       if (titleInputRef.current)
         titleInputRef.current.value = event.title || "";
       if (participantsInputRef.current)
-        participantsInputRef.current.value = event.participants?.join(", ") || "";
+        participantsInputRef.current.value =
+          event.participants?.join(", ") || "";
       if (roomInputRef.current)
         roomInputRef.current.value = event.meetingRoom || "";
       if (startInputRef.current) startInputRef.current.value = event.start;
@@ -253,7 +250,7 @@ const InteractiveCalendar: React.FC = () => {
     setParticipantInput(value);
 
     const lastCommaIndex = value.lastIndexOf(",");
-    
+
     const searchTerm =
       lastCommaIndex !== -1
         ? value.slice(lastCommaIndex + 1).trim()
@@ -305,58 +302,57 @@ const InteractiveCalendar: React.FC = () => {
     <div className=" p-2 mx-2 sm:p-4 mt-32 bg-base-200 rounded-lg  sm:mx-8">
       <div className="bg-white shadow-lg rounded-lg overflow-hidden text-black container mx-auto p-2 sm:p-4">
         <div className="calendar-container h-[calc(100vh-12rem)] md:h-[calc(100vh-16rem)] lg:h-[calc(100vh-20rem)]">
-        <FullCalendar
-          plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-          headerToolbar={{
-            left: "prev,next today",
-            center: "title",
-            right: "dayGridMonth,timeGridWeek,timeGridDay",
-          }}
-          longPressDelay={300}  
-          initialView="dayGridMonth"
-          editable={true}
-          slotMinTime="06:00:00"
-      slotMaxTime="24:00:00"
-          selectable={true}
-          selectMirror={true}
-          dayMaxEvents={true}
-          weekends={true}
-          events={events}
-          validRange={{
-            start: startOfYear,
-            end: endOfYear,
-          }}
-          select={handleDateSelect}
-          eventClick={handleEventClick}
-          eventChange={handleEventChange}
-          height="auto"
-          aspectRatio={1.35}
+          <FullCalendar
+            plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+            headerToolbar={{
+              left: "prev,next today",
+              center: "title",
+              right: "dayGridMonth,timeGridWeek,timeGridDay",
+            }}
+            longPressDelay={300}
+            initialView="dayGridMonth"
+            editable={true}
+            slotMinTime="06:00:00"
+            slotMaxTime="24:00:00"
+            selectable={true}
+            selectMirror={true}
+            dayMaxEvents={true}
+            weekends={true}
+            events={events}
+            validRange={{
+              start: startOfYear,
+              end: endOfYear,
+            }}
+            select={handleDateSelect}
+            eventClick={handleEventClick}
+            eventChange={handleEventChange}
+            height="auto"
+            aspectRatio={1.35}
+          />
+        </div>
+        <Modal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          onConfirm={handleModalConfirm}
+          action={modalAction}
+          event={selectedEvent}
+          titleInputRef={titleInputRef}
+          participantsInputRef={participantsInputRef}
+          roomInputRef={roomInputRef}
+          startInputRef={startInputRef}
+          endInputRef={endInputRef}
+          onEdit={() => setModalAction("edit")}
+          onDelete={() => setModalAction("delete")}
+          meetingRooms={meetingRooms}
+          participantInput={participantInput}
+          handleParticipantInputChange={handleParticipantInputChange}
+          handleParticipantKeyDown={handleParticipantKeyDown}
+          filteredUsers={filteredUsers}
+          handleParticipantSelect={handleParticipantSelect}
+          selectedUserIndex={selectedUserIndex}
         />
       </div>
-      <Modal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onConfirm={handleModalConfirm}
-        action={modalAction}
-        event={selectedEvent}
-        titleInputRef={titleInputRef}
-        participantsInputRef={participantsInputRef}
-        roomInputRef={roomInputRef}
-        startInputRef={startInputRef}
-        endInputRef={endInputRef}
-        onEdit={() => setModalAction("edit")}
-        onDelete={() => setModalAction("delete")}
-        meetingRooms={meetingRooms}
-        participantInput={participantInput}
-        handleParticipantInputChange={handleParticipantInputChange}
-        handleParticipantKeyDown={handleParticipantKeyDown}
-        filteredUsers={filteredUsers}
-        handleParticipantSelect={handleParticipantSelect}
-        selectedUserIndex={selectedUserIndex}
-      />
     </div>
-    </div>
-
   );
 };
 
@@ -425,7 +421,7 @@ const Modal: React.FC<ModalProps> = ({
   const isDeleteMode = action === "delete";
 
   return (
-    <div className="modal modal-open">
+    <div className="modal modal-open text-slate-200">
       <div className="modal-box">
         <h3 className="font-bold text-lg">
           {action === "add"
@@ -517,22 +513,24 @@ const Modal: React.FC<ModalProps> = ({
             Are you sure you want to delete &quot;{event?.title}&quot;?
           </p>
         )}
-        <div className="modal-action">
+        <div className="modal-action justify-between">
           <button className="btn" onClick={onClose}>
             Cancel
           </button>
 
           {isViewMode ? (
             <>
-              <button className="btn btn-primary" onClick={onEdit}>
-                Edit
-              </button>
-              <button className="btn btn-error" onClick={onDelete}>
-                Delete
-              </button>
+              <div className="flex flex-wrap space-x-2">
+                <button className="btn btn-primary" onClick={onEdit}>
+                  Edit
+                </button>
+                <button className="btn btn-error" onClick={onDelete}>
+                  Delete
+                </button>
+              </div>
             </>
           ) : (
-            <button className="btn btn-primary" onClick={onConfirm}>
+            <button className="btn btn-error" onClick={onConfirm}>
               {action === "add"
                 ? "Add"
                 : action === "edit"
@@ -558,9 +556,4 @@ function fromLocalISOString(isoString: string): Date {
   return new Date(isoString);
 }
 
-
-
-
-
-export default withAuth(InteractiveCalendar, ['User', 'Admin']);
-
+export default withAuth(InteractiveCalendar, ["User", "Admin"]);

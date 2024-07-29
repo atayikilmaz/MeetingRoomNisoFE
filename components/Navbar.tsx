@@ -30,7 +30,7 @@ const Navbar = () => {
       <input id="my-drawer-3" type="checkbox" className="drawer-toggle" />
       <div className="drawer-content flex flex-col items-center pt-10">
         {/* Navbar */}
-        <div className="navbar bg-base-200 fixed top-0 left-0 right-0 z-[100] py-5">
+        <div className="navbar bg-base-200 fixed top-0 left-0 right-0 z-[100] text-gray-200 py-5">
           <div className="flex-1">
             <a className="btn btn-ghost normal-case text-xl">MeetingRooms</a>
           </div>

@@ -14,17 +14,33 @@ export default function Register() {
   const [message, setMessage] = useState('');
   const router = useRouter();
 
+  const validatePassword = (password: string) => {
+    const minLength = 6;
+    const hasUpperCase = /[A-Z]/.test(password);
+    const hasLowerCase = /[a-z]/.test(password);
+    const hasDigit = /\d/.test(password);
+    const hasNonAlphanumeric = /\W/.test(password);
+
+    return password.length >= minLength && hasUpperCase && hasLowerCase && hasDigit && hasNonAlphanumeric;
+  };
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
     setMessage('');
-  
+
+    if (!validatePassword(password)) {
+      setMessage('Password does not meet the requirements.');
+      setIsLoading(false);
+      return;
+    }
+
     if (password !== confirmPassword) {
       setMessage('Passwords do not match.');
       setIsLoading(false);
       return;
     }
-  
+
     try {
       await register(email, password, name);
       setMessage('Registration successful!');
@@ -42,10 +58,10 @@ export default function Register() {
   };
 
   return (
-    <main className="flex flex-col items-center justify-center min-h-screen p-4 ">
-      <form className="w-full max-w-md" onSubmit={handleSubmit}>
+    <main className="flex flex-col items-center justify-center min-h-screen bg-gray-700">
+      <form className="w-full max-w-md bg-base-200 p-8 rounded-lg shadow-md" onSubmit={handleSubmit}>
         <div className="mb-4">
-          <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="name">
+          <label className="block text-gray-300 text-sm font-bold mb-2" htmlFor="name">
             Name
           </label>
           <input
@@ -59,7 +75,7 @@ export default function Register() {
           />
         </div>
         <div className="mb-4">
-          <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="email">
+          <label className="block text-gray-300 text-sm font-bold mb-2" htmlFor="email">
             Email
           </label>
           <input
@@ -73,7 +89,7 @@ export default function Register() {
           />
         </div>
         <div className="mb-4">
-          <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="password">
+          <label className="block text-gray-300 text-sm font-bold mb-2" htmlFor="password">
             Password
           </label>
           <input
@@ -87,7 +103,7 @@ export default function Register() {
           />
         </div>
         <div className="mb-6">
-          <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="confirmPassword">
+          <label className="block text-gray-300 text-sm font-bold mb-2" htmlFor="confirmPassword">
             Confirm Password
           </label>
           <input
@@ -100,7 +116,10 @@ export default function Register() {
             required
           />
         </div>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between pt-4">
+          <Link className="btn btn-warning" href="/login">
+            Login
+          </Link>
           <button
             className="btn btn-primary"
             type="submit"
@@ -108,13 +127,8 @@ export default function Register() {
           >
             {isLoading ? 'Registering...' : 'Register'}
           </button>
-
-          <Link className="btn btn-warning" href="/login">
-            Login
-          </Link>
         </div>
-        
-        {message && <p className="mt-4 text-center">{message}</p>}
+        {message && <p className="mt-4 text-center text-gray-200">{message}</p>}
       </form>
     </main>
   );

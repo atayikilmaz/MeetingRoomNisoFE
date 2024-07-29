@@ -29,10 +29,10 @@ export default function Login() {
   };
 
   return (
-    <main className="flex flex-col items-center justify-center min-h-screen p-4 bg-gray-700">
-      <form className="w-full max-w-md" onSubmit={handleSubmit}>
+    <main className="flex flex-col items-center justify-center min-h-screen bg-gray-700">
+      <form className="w-full max-w-md bg-base-200 p-8 rounded-lg shadow-md" onSubmit={handleSubmit}>
         <div className="mb-4">
-          <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="email">
+          <label className="block text-gray-300 text-sm font-bold mb-2" htmlFor="email">
             Email
           </label>
           <input
@@ -45,7 +45,7 @@ export default function Login() {
           />
         </div>
         <div className="mb-6">
-          <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="password">
+          <label className="block text-gray-300 text-sm font-bold mb-2" htmlFor="password">
             Password
           </label>
           <input
@@ -57,7 +57,10 @@ export default function Login() {
             onChange={(e) => setPassword(e.target.value)}
           />
         </div>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between pt-4">
+          <Link className="btn btn-warning" href="/register">
+            Register
+          </Link>
           <button
             className="btn btn-primary"
             type="submit"
@@ -65,11 +68,8 @@ export default function Login() {
           >
             {isLoading ? 'Logging in...' : 'Login'}
           </button>
-          <Link className="btn btn-warning" href="/register">
-            Register
-          </Link>
         </div>
-        {message && <p className="mt-4 text-center">{message}</p>}
+        {message && <p className="mt-4 text-center text-gray-200">{message}</p>}
       </form>
     </main>
   );
