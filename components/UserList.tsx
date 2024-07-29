@@ -57,7 +57,7 @@ export default function UserList() {
   return (
     <div className="container mx-auto px-4 py-4 ">
       <h2 className="text-4xl font-extrabold mt-4 text-center mb-20 text-slate-100">User List</h2>
-      <div className="overflow-x-auto shadow-md sm:rounded-lg  rounded border-base-200 border-4 border-b-2 ">
+      <div className="overflow-x-auto shadow-md sm:rounded-lg  rounded border-base-200 border-4 border-b-0 ">
         <table className="table w-full text-sm text-left text-gray-400 dark:text-gray-400  rounded-full ">
           <thead className="text-base text-gray-200 uppercase  dark:text-gray-200 rounded-t-lg">
             <tr>

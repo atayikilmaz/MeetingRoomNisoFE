@@ -7,6 +7,7 @@ import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import { withAuth } from "@/components/WithAuth";
 
+
 import {
   EventInput,
   DateSelectArg,
@@ -57,10 +58,15 @@ const InteractiveCalendar: React.FC = () => {
   const startOfYear = `${currentYear}-01-01`;
   const endOfYear = `${currentYear}-12-31`;
 
+  const [minDate, setMinDate] = useState('');
+
   useEffect(() => {
     fetchMeetings();
     fetchMeetingRooms();
     fetchUsers();
+    const now = new Date();
+    const formattedDate = now.toISOString().slice(0, 16); // Format to "YYYY-MM-DDTHH:MM"
+    setMinDate(formattedDate);
   }, []);
 
   const fetchUsers = async () => {

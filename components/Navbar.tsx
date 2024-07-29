@@ -32,7 +32,7 @@ const Navbar = () => {
         {/* Navbar */}
         <div className="navbar bg-base-200 fixed top-0 left-0 right-0 z-[100] text-gray-200 py-5">
           <div className="flex-1">
-            <a className="btn btn-ghost normal-case text-xl">MeetingRooms</a>
+            <Link href={"/"} className="btn btn-ghost normal-case text-xl">MeetingRooms</Link>
           </div>
           <div className="hidden flex-none lg:block">
             <ul className="menu menu-horizontal p-0">
@@ -72,8 +72,7 @@ const Navbar = () => {
             </label>
           </div>
         </div>
-        {/* Page content here */}
-        Content
+       
       </div>
       <div className="drawer-side z-[9999]">
         <label htmlFor="my-drawer-3" aria-label="close sidebar" className="drawer-overlay"></label>
