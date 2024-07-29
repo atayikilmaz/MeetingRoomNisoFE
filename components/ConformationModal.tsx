@@ -15,8 +15,6 @@ function MeetingRooms() {
   const [newRoomName, setNewRoomName] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [roomToDelete, setRoomToDelete] = useState<number | null>(null);
 
   useEffect(() => {
     fetchMeetingRooms();
@@ -35,23 +33,14 @@ function MeetingRooms() {
     }
   };
 
-  const deleteMeetingRoomHandler = async () => {
-    if (roomToDelete !== null) {
-      try {
-        await deleteMeetingRoom(roomToDelete);
-        setMeetingRooms(currentRooms => currentRooms.filter(room => room.id !== roomToDelete));
-        setRoomToDelete(null);
-        setIsDeleteModalOpen(false);
-      } catch (err) {
-        console.error('Failed to delete meeting room', err);
-        setError('Failed to delete meeting room');
-      }
+  const deleteMeetingRoomHandler = async (id: number) => {
+    try {
+      await deleteMeetingRoom(id);
+      setMeetingRooms(currentRooms => currentRooms.filter(room => room.id !== id));
+    } catch (err) {
+      console.error('Failed to delete meeting room', err);
+      setError('Failed to delete meeting room');
     }
-  };
-
-  const openDeleteModal = (id: number) => {
-    setRoomToDelete(id);
-    setIsDeleteModalOpen(true);
   };
 
   const addMeetingRoom = async () => {
@@ -111,37 +100,15 @@ function MeetingRooms() {
           </div>
         </dialog>
       )}
-      {isDeleteModalOpen && (
-        <dialog id="delete_modal" className="modal modal-open">
-          <div className="modal-box relative flex flex-col items-center">
-            <h3 className="text-lg font-bold">Are you sure you want to delete this room?</h3>
-            <div className="modal-action">
-              
-              <button 
-                className="btn btn-outline"
-                onClick={() => setIsDeleteModalOpen(false)}
-              >
-                Cancel
-              </button>
-              <button 
-                className="btn btn-outline btn-error"
-                onClick={deleteMeetingRoomHandler}
-              >
-                Yes, Delete
-              </button>
-            </div>
-          </div>
-        </dialog>
-      )}
       {meetingRooms.length === 0 ? (
-          <div className="text-center text-gray-500 py-52 ">No meeting rooms created</div>
-        ) : (
-          <div className="w-full flex flex-wrap justify-center py-36 ">
-            {meetingRooms.map((room) => (
-              <MeetingRoomCard key={room.id} name={room.name} onDelete={() => openDeleteModal(room.id)} />
-            ))}
-          </div>
-        )}
+        <div className="text-center text-gray-500">No meeting rooms created</div>
+      ) : (
+        <div className="w-full flex flex-wrap justify-center">
+          {meetingRooms.map((room) => (
+            <MeetingRoomCard key={room.id} name={room.name} onDelete={() => deleteMeetingRoomHandler(room.id)} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
