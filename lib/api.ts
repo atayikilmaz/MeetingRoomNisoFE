@@ -1,13 +1,18 @@
 const API_BASE_URL = 'http://localhost:5215/api/';
 
-
 async function fetchWithAuth(url: string, options: RequestInit = {}) {
-  const token = localStorage.getItem('token');
-  const headers = {
+  const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    ...options.headers,
-    Authorization: token ? `Bearer ${token}` : '',
+    ...options.headers as Record<string, string>,
   };
+
+  // Add Authorization header for all requests except login and register
+  if (!url.includes('login') && !url.includes('register')) {
+    const token = localStorage.getItem('token');
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+  }
 
   const response = await fetch(`${API_BASE_URL}${url}`, {
     ...options,
@@ -21,11 +26,13 @@ async function fetchWithAuth(url: string, options: RequestInit = {}) {
   return response.json();
 }
 
+
+
+
 export async function login(email: string, password: string) {
-  const response = await fetchWithAuth('/login', {
+  const response = await fetchWithAuth('login', {
     method: 'POST',
     body: JSON.stringify({ email, password }),
-    mode: 'no-cors'
   });
 
   // Save the token to localStorage
@@ -43,8 +50,7 @@ export async function register(email: string, password: string, name: string) {
   });
 }
 
-
-// New functions for meeting room operations
+// The rest of your functions remain the same
 export async function getMeetingRooms() {
   return fetchWithAuth('MeetingRoom');
 }
@@ -58,10 +64,6 @@ export async function createMeetingRoom(name: string) {
 
 export async function deleteMeetingRoom(id: number) {
   return fetchWithAuth(`MeetingRoom/${id}`, {
-    headers: {
-      'Content-Type': 'application/json',
-      // Include other headers as needed, such as Authorization
-    },
     method: 'DELETE',
   });
 }
@@ -80,7 +82,7 @@ export async function createMeeting(meetingData: any) {
 export async function updateMeeting(id: number, meetingData: any) {
   return fetchWithAuth(`Meetings/${id}`, {
     method: 'PUT',
-    body: JSON.stringify({ ...meetingData, id }), // Include id in the body
+    body: JSON.stringify({ ...meetingData, id }),
   });
 }
 
@@ -92,4 +94,18 @@ export async function deleteMeeting(id: number) {
 
 export async function getUsers() {
   return fetchWithAuth('User');
+}
+
+export async function deleteUser(id: string) {
+  return fetchWithAuth(`User/${id}`, {
+    method: 'DELETE',
+  });
+}
+
+export async function changeUserRole(id: string, role: string) {
+  return fetchWithAuth(`User/${id}/role`, {
+    method: 'PUT',
+    body: JSON.stringify(role),
+  });
+
 }

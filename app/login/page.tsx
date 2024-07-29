@@ -1,9 +1,8 @@
 "use client"
 
-
 import { useState, FormEvent } from 'react';
 import Link from 'next/link';
-import { useAuth } from '@/contexts/AuthContext'; // Make sure to create this context
+import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 
 export default function Login() {
@@ -22,13 +21,12 @@ export default function Login() {
     try {
       await login(email, password);
       setMessage('Login successful!');
-      //router.push('/manage-users'); // Redirect to dashboard or home page
+      router.push('/calendar'); 
     } catch (error) {
       setIsLoading(false);
       setMessage('Login failed. Please try again.');
     }
   };
-
 
   return (
     <main className="flex flex-col items-center justify-center min-h-screen p-4 bg-gray-700">
@@ -67,16 +65,10 @@ export default function Login() {
           >
             {isLoading ? 'Logging in...' : 'Login'}
           </button>
-
-          
-
-
           <Link className="btn btn-warning" href="/register">
-        Register
+            Register
           </Link>
-          
         </div>
-        
         {message && <p className="mt-4 text-center">{message}</p>}
       </form>
     </main>

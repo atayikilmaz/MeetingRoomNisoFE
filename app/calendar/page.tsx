@@ -27,12 +27,12 @@ import {
 interface MeetingEvent extends Omit<EventInput, "start" | "end"> {
   start: string;
   end: string;
-  participants?: string[];
+  participants?: string[]; 
   meetingRoom?: string;
 }
 
 interface User {
-  id: number;
+  id: string;
   name: string;
 }
 
@@ -147,9 +147,7 @@ const InteractiveCalendar: React.FC = () => {
         startDateTime: changeInfo.event.start?.toISOString(),
         endDateTime: changeInfo.event.end?.toISOString(),
         meetingRoomId: changeInfo.event.extendedProps.meetingRoomId,
-        participantIds: changeInfo.event.extendedProps.participants?.map(
-          (p: string) => Number(p)
-        ),
+        participantIds: changeInfo.event.extendedProps.participants, // Keep as strings
       };
       await updateMeeting(id, updatedEvent);
       fetchMeetings();
@@ -166,17 +164,29 @@ const InteractiveCalendar: React.FC = () => {
       const start = fromLocalISOString(startInputRef.current?.value || "");
       let end = fromLocalISOString(endInputRef.current?.value || "");
       end = new Date(end.getTime() + 1);
+  
+      const participantNames = participantsInputRef.current?.value
+        ? participantsInputRef.current.value
+            .split(",")
+            .map(name => name.trim())
+            .filter(name => name !== "")
+        : [];
+
+      const participantIds = participantNames
+        .map(name => {
+          const user = users.find(u => u.name === name);
+          return user ? user.id : null;
+        })
+        .filter((id): id is string => id !== null);
 
       const meetingData = {
         name: titleInputRef.current.value,
         startDateTime: start.toISOString(),
         endDateTime: end.toISOString(),
-        meetingRoomId: Number(roomInputRef.current?.value),
-        participantIds: participantsInputRef.current?.value
-          .split(",")
-          .map((id) => Number(id.trim())),
+        meetingRoomId: Number(roomInputRef.current?.value || 0),
+        participantIds: participantIds,
       };
-
+  
       try {
         if (modalAction === "edit" && selectedEvent) {
           const id = Number(selectedEvent.id);
@@ -198,6 +208,7 @@ const InteractiveCalendar: React.FC = () => {
     }
     setIsModalOpen(false);
   };
+
 
   const handleModalClose = () => {
     setIsModalOpen(false);
@@ -238,6 +249,7 @@ const InteractiveCalendar: React.FC = () => {
     setParticipantInput(value);
 
     const lastCommaIndex = value.lastIndexOf(",");
+    
     const searchTerm =
       lastCommaIndex !== -1
         ? value.slice(lastCommaIndex + 1).trim()

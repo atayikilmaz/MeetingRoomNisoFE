@@ -21,6 +21,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const checkAuth = async () => {
       const token = localStorage.getItem('token');
       if (token) {
+        // If a token exists, fetch the user role
         await fetchUserRole();
       } else {
         setAuthState(prev => ({ ...prev, isLoading: false }));
@@ -29,7 +30,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   
     checkAuth();
   }, []);
-
 
   
   const fetchUserRole = async () => {
@@ -57,11 +57,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const role = Array.isArray(roles) && roles.length > 0 ? roles[0] : 'User';
         console.log('Assigned role:', role);
   
-        setAuthState(prev => ({
-          ...prev,
-          user: prev.user ? { ...prev.user, role } : null,
+        setAuthState({
+          user: { email: 'user@example.com', role }, // You might want to fetch the email as well
           isLoading: false,
-        }));
+        });
       } else if (response.status === 401) {
         console.error('Token is invalid or expired');
         localStorage.removeItem('token');
@@ -111,7 +110,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw error;
     }
   };
-
   const logout = () => {
     localStorage.removeItem('token');
     setAuthState({ user: null, isLoading: false });
