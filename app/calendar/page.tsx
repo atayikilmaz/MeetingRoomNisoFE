@@ -163,29 +163,30 @@ const InteractiveCalendar: React.FC = () => {
     }
   };
 
+ 
+
   const handleModalConfirm = async () => {
-    if (
-      (modalAction === "add" || modalAction === "edit") &&
-      titleInputRef.current
-    ) {
+    if ((modalAction === "add" || modalAction === "edit") && titleInputRef.current) {
       const start = fromLocalISOString(startInputRef.current?.value || "");
       let end = fromLocalISOString(endInputRef.current?.value || "");
       end = new Date(end.getTime() + 1);
-
+  
+      // Split the participant input and trim each name
       const participantNames = participantsInputRef.current?.value
         ? participantsInputRef.current.value
             .split(",")
             .map((name) => name.trim())
             .filter((name) => name !== "")
         : [];
-
+  
+      // Map names to IDs, filtering out any that don't match
       const participantIds = participantNames
         .map((name) => {
           const user = users.find((u) => u.name === name);
           return user ? user.id : null;
         })
         .filter((id): id is string => id !== null);
-
+  
       const meetingData = {
         name: titleInputRef.current.value,
         startDateTime: start.toISOString(),
@@ -193,7 +194,7 @@ const InteractiveCalendar: React.FC = () => {
         meetingRoomId: Number(roomInputRef.current?.value || 0),
         participantIds: participantIds,
       };
-
+  
       try {
         if (modalAction === "edit" && selectedEvent) {
           const id = Number(selectedEvent.id);
@@ -254,18 +255,23 @@ const InteractiveCalendar: React.FC = () => {
   ) => {
     const value = e.target.value;
     setParticipantInput(value);
-
+  
     const lastCommaIndex = value.lastIndexOf(",");
-
+  
     const searchTerm =
       lastCommaIndex !== -1
         ? value.slice(lastCommaIndex + 1).trim()
         : value.trim();
-
-    const filtered = users.filter((user) =>
-      user.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-    setFilteredUsers(filtered);
+  
+    if (searchTerm) {
+      const filtered = users.filter((user) =>
+        user.name?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      setFilteredUsers(filtered);
+    } else {
+      setFilteredUsers(users);
+    }
+  
     setSelectedUserIndex(-1);
   };
 
