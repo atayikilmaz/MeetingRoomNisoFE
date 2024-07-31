@@ -1,12 +1,17 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Roboto } from 'next/font/google'
 import "./globals.css";
 import Navbar from '@/components/Navbar';
 import { AuthProvider } from "../contexts/AuthContext";
 import Footer from '@/components/footer';
 
 
-const inter = Inter({ subsets: ["latin"] });
+const roboto = Roboto({
+  weight: '400',
+  subsets: ['latin'],
+  display: 'swap',
+})
+
 
 export const metadata: Metadata = {
   title: "Meeting Rooms",
