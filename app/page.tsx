@@ -27,7 +27,7 @@ export default function Home() {
             href={user ? "/calendar" : "/login"} 
             className="btn btn-primary"
           >
-            Get Started
+            {user ? "Go To Your Calendar" : "Get Started"}
           </Link>
         </div>
       </div>

@@ -1,17 +1,31 @@
 "use client"
 
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { FaGoogle } from 'react-icons/fa';
+
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
-  const { login } = useAuth();
+  const { login, googleLogin, fetchUserRole } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const token = searchParams.get('token');
+    if (token) {
+      console.log('Received token from URL:', token);
+      localStorage.setItem('token', token);
+      fetchUserRole().then(() => {
+        router.push('/calendar');
+      });
+    }
+  }, [searchParams, router, fetchUserRole]);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -26,6 +40,10 @@ export default function Login() {
       setIsLoading(false);
       setMessage('Login failed. Please try again.');
     }
+  };
+
+  const handleGoogleLogin = () => {
+    googleLogin();
   };
 
   return (
@@ -58,15 +76,24 @@ export default function Login() {
           />
         </div>
         <div className="flex items-center justify-between pt-4">
-          <Link className="btn btn-warning" href="/register">
+          <Link className="btn btn-warning flex-1 mr-2" href="/register">
             Register
           </Link>
           <button
-            className="btn btn-primary"
+            className="btn btn-primary flex-1 ml-2"
             type="submit"
             disabled={isLoading}
           >
             {isLoading ? 'Logging in...' : 'Login'}
+          </button>
+        </div>
+        <div className="mt-4">
+        <button
+            type="button"
+            onClick={handleGoogleLogin}
+            className="btn w-full bg-red-500 hover:bg-red-600 text-black"
+          >
+            <FaGoogle className="mr-2" /> Sign in with Google
           </button>
         </div>
         {message && <p className="mt-4 text-center text-gray-200">{message}</p>}

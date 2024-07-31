@@ -6,36 +6,41 @@ async function fetchWithAuth(url: string, options: RequestInit = {}) {
     ...options.headers as Record<string, string>,
   };
 
-  // Add Authorization header for all requests except login and register
   if (!url.includes('login') && !url.includes('register')) {
     const token = localStorage.getItem('token');
+    console.log('Token retrieved for API call:', token);
     if (token) {
+
+      
       headers['Authorization'] = `Bearer ${token}`;
     }
   }
 
-  const response = await fetch(`${API_BASE_URL}${url}`, {
+  const fullUrl = `${API_BASE_URL}${url}`;
+  console.log(`Making request to: ${fullUrl}`);
+
+  const response = await fetch(fullUrl, {
     ...options,
     headers,
   });
 
+  console.log(`Response status for ${url}:`, response.status);
+
   if (!response.ok) {
-    throw new Error('API request failed');
+    const errorText = await response.text();
+    throw new Error(`API request failed: ${response.status} ${errorText}`);
   }
 
   return response.json();
 }
 
 
-
-
 export async function login(email: string, password: string) {
-  const response = await fetchWithAuth('login', {
+  const response = await fetchWithAuth('Auth/login', {
     method: 'POST',
     body: JSON.stringify({ email, password }),
   });
 
-  // Save the token to localStorage
   if (response.token) {
     localStorage.setItem('token', response.token);
   }
@@ -50,7 +55,6 @@ export async function register(email: string, password: string, name: string) {
   });
 }
 
-// The rest of your functions remain the same
 export async function getMeetingRooms() {
   return fetchWithAuth('MeetingRoom');
 }
@@ -107,5 +111,8 @@ export async function changeUserRole(id: string, role: string) {
     method: 'PUT',
     body: JSON.stringify(role),
   });
+}
 
+export function googleLogin() {
+  window.location.href = 'http://localhost:5215/api/Auth/google-login';
 }

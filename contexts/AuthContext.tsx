@@ -7,6 +7,8 @@ interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   fetchUserRole: () => Promise<void>;
+  googleLogin: () => void;
+  setToken: (token: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -21,7 +23,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const checkAuth = async () => {
       const token = localStorage.getItem('token');
       if (token) {
-        // If a token exists, fetch the user role
         await fetchUserRole();
       } else {
         setAuthState(prev => ({ ...prev, isLoading: false }));
@@ -31,7 +32,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     checkAuth();
   }, []);
 
-  
+  const setToken = (token: string) => {
+    localStorage.setItem('token', token);
+  };
+
   const fetchUserRole = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -50,6 +54,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         },
       });
   
+      console.log('Response status:', response.status);
+  
       if (response.ok) {
         const roles = await response.json();
         console.log('Received roles:', roles);
@@ -66,7 +72,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.removeItem('token');
         setAuthState({ user: null, isLoading: false });
       } else {
-        throw new Error('Failed to fetch user role');
+        const errorText = await response.text();
+        throw new Error(`Failed to fetch user role. Status: ${response.status}, Error: ${errorText}`);
       }
     } catch (error) {
       console.error('Error fetching user role:', error);
@@ -74,12 +81,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-
-
-
   const login = async (email: string, password: string) => {
     try {
-      const response = await fetch('http://localhost:5215/login', {
+      const response = await fetch('http://localhost:5215/api/Auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -90,17 +94,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
   
       const data = await response.json();
-      console.log('Login response:', data);
   
-      if (!data.accessToken) {
-        throw new Error('No access token received from server');
+      if (!data.token) {
+        throw new Error('No token received from server');
       }
   
-      localStorage.setItem('token', data.accessToken);
-      console.log('Token saved to localStorage:', data.accessToken);
+      setToken(data.token);
   
       setAuthState({ 
-        user: { email, role: 'User' }, // We'll fetch the role separately
+        user: { email, role: 'User' },
         isLoading: false 
       });
   
@@ -110,13 +112,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw error;
     }
   };
+
+
+
   const logout = () => {
     localStorage.removeItem('token');
     setAuthState({ user: null, isLoading: false });
   };
 
+  const googleLogin = () => {
+    window.location.href = 'http://localhost:5215/api/Auth/google-login';
+  };
+
   return (
-    <AuthContext.Provider value={{ ...authState, login, logout, fetchUserRole }}>
+    <AuthContext.Provider value={{ ...authState, login, logout, fetchUserRole, googleLogin, setToken }}>
       {children}
     </AuthContext.Provider>
   );
