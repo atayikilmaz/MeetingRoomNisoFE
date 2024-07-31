@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, FormEvent, useEffect } from 'react';
+import React, { useState, FormEvent, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -47,6 +47,8 @@ export default function Login() {
   };
 
   return (
+    <Suspense fallback={<div>Loading...</div>}>
+
     <main className="flex flex-col items-center justify-center min-h-screen bg-gray-700">
       <form className="w-full max-w-md bg-base-200 p-8 rounded-lg shadow-md" onSubmit={handleSubmit}>
         <div className="mb-4">
@@ -99,5 +101,7 @@ export default function Login() {
         {message && <p className="mt-4 text-center text-gray-200">{message}</p>}
       </form>
     </main>
+    </Suspense>
+
   );
 }
