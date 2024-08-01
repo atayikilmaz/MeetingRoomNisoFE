@@ -2,7 +2,7 @@
 
 import { useState, FormEvent } from 'react';
 import Link from 'next/link';
-import { register } from '@/lib/api'; // Update this path
+import { register, verify2FA } from '@/lib/api'; // Update this path
 import { useRouter } from 'next/navigation';
 
 export default function Register() {
@@ -13,6 +13,8 @@ export default function Register() {
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
   const router = useRouter();
+  const [twoFactorToken, setTwoFactorToken] = useState('');
+const [isVerifying2FA, setIsVerifying2FA] = useState(false);
 
   const validatePassword = (password: string) => {
     const minLength = 6;
@@ -28,23 +30,23 @@ export default function Register() {
     e.preventDefault();
     setIsLoading(true);
     setMessage('');
-
+  
     if (!validatePassword(password)) {
       setMessage('Password does not meet the requirements.');
       setIsLoading(false);
       return;
     }
-
+  
     if (password !== confirmPassword) {
       setMessage('Passwords do not match.');
       setIsLoading(false);
       return;
     }
-
+  
     try {
       await register(email, password, name);
-      setMessage('Registration successful!');
-      setTimeout(() => router.push('/login'), 2000);
+      setMessage('Registration successful! Please check your email for the 2FA code.');
+      setIsVerifying2FA(true);
     } catch (error) {
       console.error('Registration error:', error);
       if (error instanceof Error) {
@@ -57,10 +59,33 @@ export default function Register() {
     }
   };
 
+  const handleVerify2FA = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setMessage('');
+  
+    try {
+      const response = await verify2FA(email, twoFactorToken);
+      setMessage(response.message || '2FA verification successful!');
+      // The token is already stored in localStorage by the verify2FA function
+      setTimeout(() => router.push('/calendar'), 2000); // Redirect to dashboard or wherever you want after successful login
+    } catch (error) {
+      console.error('2FA verification error:', error);
+      if (error instanceof Error) {
+        setMessage(`2FA verification failed: ${error.message}`);
+      } else {
+        setMessage('2FA verification failed: An unknown error occurred');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <main className="flex flex-col items-center justify-center min-h-screen bg-gray-700">
+{!isVerifying2FA ? (
       <form className="w-full max-w-md bg-base-200 p-8 rounded-lg shadow-md" onSubmit={handleSubmit}>
-        <div className="mb-4">
+              <div className="mb-4">
           <label className="block text-gray-300 text-sm font-bold mb-2" htmlFor="name">
             Name
           </label>
@@ -130,6 +155,34 @@ export default function Register() {
         </div>
         {message && <p className="mt-4 text-center text-gray-200">{message}</p>}
       </form>
-    </main>
-  );
+  ) : (
+    <form className="w-full max-w-md bg-base-200 p-8 rounded-lg shadow-md" onSubmit={handleVerify2FA}>
+      <div className="mb-4">
+        <label className="block text-gray-300 text-sm font-bold mb-2" htmlFor="twoFactorToken">
+          2FA Token
+        </label>
+        <input
+          className="input input-bordered w-full"
+          id="twoFactorToken"
+          type="text"
+          placeholder="Enter 2FA token"
+          value={twoFactorToken}
+          onChange={(e) => setTwoFactorToken(e.target.value)}
+          required
+        />
+      </div>
+      <div className="flex items-center justify-between pt-4">
+        <button
+          className="btn btn-primary"
+          type="submit"
+          disabled={isLoading}
+        >
+          {isLoading ? 'Verifying...' : 'Verify 2FA'}
+        </button>
+      </div>
+    </form>
+  )}
+  {message && <p className="mt-4 text-center text-gray-200">{message}</p>}
+</main>
+);
 }

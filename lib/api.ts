@@ -116,3 +116,26 @@ export async function changeUserRole(id: string, role: string) {
 export function googleLogin() {
   window.location.href = 'http://localhost:5215/api/Auth/google-login';
 }
+
+export const verify2FA = async (email: string, token: string) => {
+  const response = await fetch(`${API_BASE_URL}auth/verify-2fa`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ email, token }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to verify 2FA');
+  }
+
+  const data = await response.json();
+  
+  if (data.token) {
+    localStorage.setItem('token', data.token);
+  }
+
+  return data;
+};
