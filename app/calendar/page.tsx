@@ -1,46 +1,26 @@
-"use client";
-
-import React, { useState, useRef, useEffect } from "react";
-import FullCalendar from "@fullcalendar/react";
-import dayGridPlugin from "@fullcalendar/daygrid";
-import timeGridPlugin from "@fullcalendar/timegrid";
-import interactionPlugin from "@fullcalendar/interaction";
-import { withAuth } from "@/components/WithAuth";
+"use client"
 
 
-import {
-  EventInput,
-  DateSelectArg,
-  EventClickArg,
-  EventChangeArg,
-} from "@fullcalendar/core";
-import {
-  getMeetings,
-  createMeeting,
-  updateMeeting,
-  deleteMeeting,
-  getMeetingRooms,
-  getUsers,
-} from "@/lib/api";
+import React, { useState, useRef, useEffect } from 'react';
+import CalendarComponent from '@/components/Calendar';
+import ModalComponent from '@/components/CalendarModal';
+import { getMeetings, createMeeting, updateMeeting, deleteMeeting, getMeetingRooms, getUsers, fetchAvailableSlots } from '@/lib/api';
+import { withAuth } from '@/components/WithAuth';
 
-interface MeetingEvent extends Omit<EventInput, "start" | "end"> {
+
+interface MeetingEvent {
+  id: number;
+  title: string;
   start: string;
   end: string;
-  participants?: string[];
-  meetingRoom?: string;
+  participants: string[];
+  meetingRoom: string;
 }
 
-interface User {
-  id: string;
-  name: string;
-}
-
-const InteractiveCalendar: React.FC = () => {
+const Calendar: React.FC = () => {
   const [events, setEvents] = useState<MeetingEvent[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalAction, setModalAction] = useState<
-    "add" | "edit" | "delete" | "view"
-  >("add");
+  const [modalAction, setModalAction] = useState<"add" | "edit" | "delete" | "view">("add");
   const [selectedEvent, setSelectedEvent] = useState<MeetingEvent | null>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
   const participantsInputRef = useRef<HTMLInputElement>(null);
@@ -50,24 +30,61 @@ const InteractiveCalendar: React.FC = () => {
   const [meetingRooms, setMeetingRooms] = useState<
     { id: number; name: string }[]
   >([]);
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
   const [participantInput, setParticipantInput] = useState("");
-  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<any[]>([]);
   const [selectedUserIndex, setSelectedUserIndex] = useState(-1);
-  const currentYear = new Date().getFullYear();
-  const startOfYear = `${currentYear}-01-01`;
-  const endOfYear = `${currentYear}-12-31`;
-
-  const [minDate, setMinDate] = useState('');
+  const [availableSlots, setAvailableSlots] = useState<
+    { startTime: string; endTime: string }[]
+  >([]);
+  const [selectedStartTime, setSelectedStartTime] = useState<string>('');
+  const [selectedEndTime, setSelectedEndTime] = useState<string>('');
+  const [selectedDate, setSelectedDate] = useState<string>('');
+  const [existingMeetings, setExistingMeetings] = useState<{ start: string; end: string }[]>([]);
 
   useEffect(() => {
     fetchMeetings();
     fetchMeetingRooms();
     fetchUsers();
-    const now = new Date();
-    const formattedDate = now.toISOString().slice(0, 16); // Format to "YYYY-MM-DDTHH:MM"
-    setMinDate(formattedDate);
   }, []);
+
+  useEffect(() => {
+    if (selectedDate && isModalOpen) {
+      console.log("Fetching available time slots");
+      fetchAvailableTimeSlots(selectedDate);
+    }
+  }, [selectedDate, isModalOpen]);
+
+  const fetchMeetings = async () => {
+    try {
+      const meetings = await getMeetings();
+      const formattedMeetings = meetings.map((meeting: any) => ({
+        id: meeting.id,
+        title: meeting.name,
+        start: meeting.startDateTime,
+        end: meeting.endDateTime,
+        allDay: false
+      }));
+      setEvents(formattedMeetings);
+      
+      // Set existingMeetings
+      setExistingMeetings(meetings.map((meeting: any) => ({
+        start: meeting.startDateTime,
+        end: meeting.endDateTime
+      })));
+    } catch (error) {
+      console.error("Error fetching meetings:", error);
+    }
+  };
+
+  const fetchMeetingRooms = async () => {
+    try {
+      const rooms = await getMeetingRooms();
+      setMeetingRooms(rooms);
+    } catch (error) {
+      console.error("Error fetching meeting rooms:", error);
+    }
+  };
 
   const fetchUsers = async () => {
     try {
@@ -78,49 +95,51 @@ const InteractiveCalendar: React.FC = () => {
     }
   };
 
-  const fetchMeetings = async () => {
-    try {
-      const meetingsData = await getMeetings();
-      setEvents(
-        meetingsData.map((meeting: any) => ({
-          id: meeting.id,
-          title: meeting.name,
-          start: meeting.startDateTime,
-          end: meeting.endDateTime,
-          participants: meeting.participants,
-          meetingRoom: meeting.meetingRoom,
-        }))
-      );
-    } catch (error) {
-      console.error("Error fetching meetings:", error);
+  const fetchAvailableTimeSlots = async (date: string) => {
+    console.log("fetchAvailableTimeSlots called with date:", date);
+    const roomId = roomInputRef.current?.value;
+    if (roomId) {
+      try {
+        console.log("Fetching slots for room:", roomId);
+        const slots = await fetchAvailableSlots(roomId, date);
+        console.log("Fetched slots:", slots);
+        setAvailableSlots(slots);
+      } catch (error) {
+        console.error("Error fetching available slots:", error);
+        setAvailableSlots([]);
+      }
+    } else {
+      console.log("No room selected");
+      setAvailableSlots([]);
     }
   };
 
-  const fetchMeetingRooms = async () => {
-    try {
-      const roomsData = await getMeetingRooms();
-      setMeetingRooms(roomsData);
-    } catch (error) {
-      console.error("Error fetching meeting rooms:", error);
-    }
-  };
+  const handleDateSelect = async (selectInfo: any) => {
+    const start = new Date(selectInfo.start.getTime() + 86400000); // add one day
+    const end = new Date(start.getTime() - 1);
 
-  const handleDateSelect = (selectInfo: DateSelectArg) => {
-    const start = selectInfo.start;
-    const end = selectInfo.end;
-
-    const newEvent = {
-      start: toLocalISOString(start),
-      end: toLocalISOString(new Date(end.getTime() - 1)),
-      allDay: selectInfo.allDay,
+    const newEvent: MeetingEvent = {
+      id: 0, // or some other default value
+      title: '',
+      start: start.toISOString().split('T')[0],
+      end: end.toISOString().split('T')[0],
+      participants: [],
+      meetingRoom: '',
     };
+
     setSelectedEvent(newEvent);
     setModalAction("add");
     setIsModalOpen(true);
+
+    // Set the selected date
+    const selectedDate = start.toISOString().split('T')[0];
+    setSelectedDate(selectedDate);
+
+    // Reset other modal state
     resetModalState(newEvent);
   };
 
-  const handleEventClick = (clickInfo: EventClickArg) => {
+  const handleEventClick = (clickInfo: any) => {
     const event = clickInfo.event;
     let roomId = event.extendedProps.meetingRoomId;
 
@@ -134,8 +153,8 @@ const InteractiveCalendar: React.FC = () => {
     const selectedEvent = {
       id: event.id,
       title: event.title,
-      start: toLocalISOString(event.start!),
-      end: toLocalISOString(new Date(event.end!.getTime() - 1)),
+      start: event.start.toISOString().split('T')[0],
+      end: event.end.toISOString().split('T')[0],
       allDay: event.allDay,
       participants: event.extendedProps.participants,
       meetingRoom: roomId ? roomId.toString() : "",
@@ -146,13 +165,13 @@ const InteractiveCalendar: React.FC = () => {
     resetModalState(selectedEvent);
   };
 
-  const handleEventChange = async (changeInfo: EventChangeArg) => {
+  const handleEventChange = async (changeInfo: any) => {
     try {
       const id = Number(changeInfo.event.id);
       const updatedEvent = {
         name: changeInfo.event.title,
-        startDateTime: changeInfo.event.start?.toISOString(),
-        endDateTime: changeInfo.event.end?.toISOString(),
+        startDateTime: changeInfo.event.start.toISOString(),
+        endDateTime: changeInfo.event.end.toISOString(),
         meetingRoomId: changeInfo.event.extendedProps.meetingRoomId,
         participantIds: changeInfo.event.extendedProps.participants, // Keep as strings
       };
@@ -163,39 +182,55 @@ const InteractiveCalendar: React.FC = () => {
     }
   };
 
- 
-
   const handleModalConfirm = async () => {
     if ((modalAction === "add" || modalAction === "edit") && titleInputRef.current) {
-      const start = fromLocalISOString(startInputRef.current?.value || "");
-      let end = fromLocalISOString(endInputRef.current?.value || "");
-      end = new Date(end.getTime() + 1);
-  
-      // Split the participant input and trim each name
-      const participantNames = participantsInputRef.current?.value
-        ? participantsInputRef.current.value
-            .split(",")
-            .map((name) => name.trim())
-            .filter((name) => name !== "")
-        : [];
-  
-      // Map names to IDs, filtering out any that don't match
-      const participantIds = participantNames
-        .map((name) => {
-          const user = users.find((u) => u.name === name);
-          return user ? user.id : null;
-        })
-        .filter((id): id is string => id !== null);
-  
-      const meetingData = {
-        name: titleInputRef.current.value,
-        startDateTime: start.toISOString(),
-        endDateTime: end.toISOString(),
-        meetingRoomId: Number(roomInputRef.current?.value || 0),
-        participantIds: participantIds,
-      };
-  
       try {
+        // Validate date and time inputs
+        if (!selectedDate || !selectedStartTime || !selectedEndTime) {
+          console.error("Missing date or time:", { selectedDate, selectedStartTime, selectedEndTime });
+          throw new Error("Date and time must be selected");
+        }
+
+        const start = new Date(selectedStartTime);
+        const end = new Date(selectedEndTime);
+
+        // Check if dates are valid
+        if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+          console.error("Invalid date or time:", { start, end });
+          throw new Error("Invalid date or time");
+        }
+
+        // Check if end time is after start time
+        if (end <= start) {
+          console.error("End time is not after start time:", { start, end });
+          throw new Error("End time must be after start time");
+        }
+
+        // Handle participants
+        const participantNames = participantsInputRef.current?.value
+          ? participantsInputRef.current.value
+              .split(",")
+              .map((name) => name.trim())
+              .filter((name) => name !== "")
+          : [];
+
+        const participantIds = participantNames
+          .map((name) => {
+            const user = users.find((u) => u.name === name);
+            return user ? user.id : null;
+          })
+          .filter((id): id is string => id !== null);
+
+        const meetingData = {
+          name: titleInputRef.current.value,
+          startDateTime: start.toISOString(),
+          endDateTime: end.toISOString(),
+          meetingRoomId: Number(roomInputRef.current?.value || 0),
+          participantIds: participantIds,
+        };
+
+        console.log("Meeting data:", meetingData);
+
         if (modalAction === "edit" && selectedEvent) {
           const id = Number(selectedEvent.id);
           await updateMeeting(id, meetingData);
@@ -205,6 +240,7 @@ const InteractiveCalendar: React.FC = () => {
         fetchMeetings();
       } catch (error) {
         console.error("Error saving meeting:", error);
+        return; // Exit the function early if there's an error
       }
     } else if (modalAction === "delete" && selectedEvent) {
       try {
@@ -254,15 +290,14 @@ const InteractiveCalendar: React.FC = () => {
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
     const value = e.target.value;
-    setParticipantInput(value);
-  
+
     const lastCommaIndex = value.lastIndexOf(",");
-  
+
     const searchTerm =
       lastCommaIndex !== -1
         ? value.slice(lastCommaIndex + 1).trim()
         : value.trim();
-  
+
     if (searchTerm) {
       const filtered = users.filter((user) =>
         user.name?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -271,23 +306,7 @@ const InteractiveCalendar: React.FC = () => {
     } else {
       setFilteredUsers(users);
     }
-  
-    setSelectedUserIndex(-1);
-  };
 
-  const handleParticipantSelect = (user: User) => {
-    const currentInput = participantsInputRef.current?.value || "";
-    const lastCommaIndex = currentInput.lastIndexOf(",");
-    const newValue =
-      lastCommaIndex !== -1
-        ? currentInput.slice(0, lastCommaIndex + 1) + " " + user.name + ", "
-        : user.name + ", ";
-
-    if (participantsInputRef.current) {
-      participantsInputRef.current.value = newValue;
-    }
-    setParticipantInput(newValue);
-    setFilteredUsers([]);
     setSelectedUserIndex(-1);
   };
 
@@ -305,46 +324,49 @@ const InteractiveCalendar: React.FC = () => {
     } else if (e.key === "Enter") {
       e.preventDefault();
       if (selectedUserIndex >= 0 && selectedUserIndex < filteredUsers.length) {
-        handleParticipantSelect(filteredUsers[selectedUserIndex]);
+        const selectedUser = filteredUsers[selectedUserIndex];
+        setParticipantInput((prev) => {
+          if (prev.includes(selectedUser.name)) {
+            return prev;
+          }
+          return `${prev}${prev ? ", " : ""}${selectedUser.name}`;
+        });
+        setFilteredUsers([]);
+        setSelectedUserIndex(-1);
       }
     }
   };
 
+  const handleParticipantSelect = (user: any) => {
+    const currentInput = participantsInputRef.current?.value || "";
+    const lastCommaIndex = currentInput.lastIndexOf(",");
+    const newValue =
+      lastCommaIndex !== -1
+        ? currentInput.slice(0, lastCommaIndex + 1) + " " + user.name + ", "
+        : user.name + ", ";
+
+    if (participantsInputRef.current) {
+      participantsInputRef.current.value = newValue;
+    }
+    setParticipantInput(newValue);
+    setFilteredUsers([]);
+    setSelectedUserIndex(-1);
+  };
+
   return (
-    <div className=" p-2 mx-2 sm:p-4 mt-32 bg-base-200 rounded-lg  sm:mx-8">
+    <div className="p-2 mx-2 sm:p-4 mt-32 bg-base-200 rounded-lg sm:mx-8">
       <div className="bg-white shadow-lg rounded-lg overflow-hidden text-black container mx-auto p-2 sm:p-4">
         <div className="calendar-container h-[calc(100vh-12rem)] md:h-[calc(100vh-16rem)] lg:h-[calc(100vh-20rem)]">
-          <FullCalendar
-            plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-            headerToolbar={{
-              left: "prev,next today",
-              center: "title",
-              right: "dayGridMonth,timeGridWeek,timeGridDay",
-            }}
-            longPressDelay={300}
-            initialView="dayGridMonth"
-            editable={true}
-            slotMinTime="06:00:00"
-            slotMaxTime="24:00:00"
-            selectable={true}
-            selectMirror={true}
-            dayMaxEvents={true}
-            weekends={true}
+          <CalendarComponent
             events={events}
-            validRange={{
-              start: startOfYear,
-              end: endOfYear,
-            }}
-            select={handleDateSelect}
-            eventClick={handleEventClick}
-            eventChange={handleEventChange}
-            height="auto"
-            aspectRatio={1.35}
+            handleDateSelect={handleDateSelect}
+            handleEventClick={handleEventClick}
+            handleEventChange={handleEventChange}
           />
         </div>
-        <Modal
+        <ModalComponent
           isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
+          onClose={handleModalClose}
           onConfirm={handleModalConfirm}
           action={modalAction}
           event={selectedEvent}
@@ -362,210 +384,19 @@ const InteractiveCalendar: React.FC = () => {
           filteredUsers={filteredUsers}
           handleParticipantSelect={handleParticipantSelect}
           selectedUserIndex={selectedUserIndex}
+          availableSlots={availableSlots}
+          selectedStartTime={selectedStartTime}
+          setSelectedStartTime={setSelectedStartTime}
+          selectedEndTime={selectedEndTime}
+          setSelectedEndTime={setSelectedEndTime}
+          selectedDate={selectedDate}
+          setSelectedDate={setSelectedDate}
+          fetchAvailableTimeSlots={fetchAvailableTimeSlots}
+          existingMeetings={existingMeetings}
         />
       </div>
     </div>
   );
 };
 
-interface ModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onConfirm: () => void;
-  action: "add" | "edit" | "delete" | "view";
-  event: MeetingEvent | null;
-  titleInputRef: React.RefObject<HTMLInputElement>;
-  participantsInputRef: React.RefObject<HTMLInputElement>;
-  roomInputRef: React.RefObject<HTMLSelectElement>;
-  startInputRef: React.RefObject<HTMLInputElement>;
-  endInputRef: React.RefObject<HTMLInputElement>;
-  onEdit: () => void;
-  onDelete: () => void;
-  meetingRooms: { id: number; name: string }[];
-  participantInput: string;
-  handleParticipantInputChange: (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => void;
-  handleParticipantKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
-  filteredUsers: User[];
-  handleParticipantSelect: (user: User) => void;
-  selectedUserIndex: number;
-}
-
-const Modal: React.FC<ModalProps> = ({
-  isOpen,
-  onClose,
-  onConfirm,
-  action,
-  event,
-  titleInputRef,
-  participantsInputRef,
-  roomInputRef,
-  startInputRef,
-  endInputRef,
-  onEdit,
-  onDelete,
-  meetingRooms,
-  participantInput,
-  handleParticipantInputChange,
-  handleParticipantKeyDown,
-  filteredUsers,
-  handleParticipantSelect,
-  selectedUserIndex,
-}) => {
-  useEffect(() => {
-    if (event) {
-      if (titleInputRef.current)
-        titleInputRef.current.value = event.title || "";
-      if (participantsInputRef.current)
-        participantsInputRef.current.value =
-          event.participants?.join(", ") || "";
-      if (roomInputRef.current)
-        roomInputRef.current.value = event.meetingRoom || "";
-      if (startInputRef.current) startInputRef.current.value = event.start;
-      if (endInputRef.current) endInputRef.current.value = event.end;
-    }
-  }, [event, action]);
-
-  if (!isOpen) return null;
-
-  const isViewMode = action === "view";
-  const isDeleteMode = action === "delete";
-
-  return (
-    <div className="modal modal-open text-slate-200">
-      <div className="modal-box">
-        <h3 className="font-bold text-lg">
-          {action === "add"
-            ? "Add New Event"
-            : action === "edit"
-            ? "Edit Event"
-            : action === "delete"
-            ? "Delete Event"
-            : "View Event"}
-        </h3>
-        {!isDeleteMode && (
-          <div className="space-y-4 mt-4">
-            <input
-              type="text"
-              placeholder="Event Title"
-              className="input input-bordered w-full"
-              ref={titleInputRef}
-              readOnly={isViewMode}
-            />
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Participants (comma-separated)"
-                className="input input-bordered w-full"
-                ref={participantsInputRef}
-                readOnly={isViewMode}
-                onChange={handleParticipantInputChange}
-                onKeyDown={handleParticipantKeyDown}
-                value={participantInput}
-              />
-              {filteredUsers.length > 0 && (
-                <ul className="absolute z-10 w-full bg-gray-700  rounded-md border-slate-700 mt-1 max-h-60  overflow-auto">
-                  {filteredUsers.map((user, index) => (
-                    <li
-                      key={user.id}
-                      className={`p-2 hover:bg-gray-800  cursor-pointer ${
-                        index === selectedUserIndex ? "bg-gray-800" : ""
-                      }`}
-                      onClick={() => handleParticipantSelect(user)}
-                    >
-                      {user.name}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-            <div className="relative">
-              <select
-                className={`select select-bordered w-full ${
-                  isViewMode ? "custom-disabled" : ""
-                }`}
-                ref={roomInputRef}
-                disabled={isViewMode}
-              >
-                {event?.meetingRoom ? null : (
-                  <option value="">Select a meeting room</option>
-                )}
-                {meetingRooms.map((room) => (
-                  <option key={room.id} value={room.id.toString()}>
-                    {room.name}
-                  </option>
-                ))}
-              </select>
-              <style jsx>{`
-                .custom-disabled {
-                  opacity: 1;
-                  color: #a7adba;
-                  cursor: default;
-                  pointer-events: none;
-                }
-              `}</style>
-            </div>
-            <input
-              type="datetime-local"
-              className="input input-bordered w-full"
-              ref={startInputRef}
-              readOnly={isViewMode}
-            />
-            <input
-              type="datetime-local"
-              className="input input-bordered w-full"
-              ref={endInputRef}
-              readOnly={isViewMode}
-            />
-          </div>
-        )}
-        {isDeleteMode && (
-          <p className="py-4">
-            Are you sure you want to delete &quot;{event?.title}&quot;?
-          </p>
-        )}
-        <div className="modal-action justify-between">
-          <button className="btn" onClick={onClose}>
-            Cancel
-          </button>
-
-          {isViewMode ? (
-            <>
-              <div className="flex flex-wrap space-x-2">
-                <button className="btn btn-primary" onClick={onEdit}>
-                  Edit
-                </button>
-                <button className="btn btn-error" onClick={onDelete}>
-                  Delete
-                </button>
-              </div>
-            </>
-          ) : (
-            <button className="btn btn-error" onClick={onConfirm}>
-              {action === "add"
-                ? "Add"
-                : action === "edit"
-                ? "Update"
-                : "Delete"}
-            </button>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-function toLocalISOString(date: Date): string {
-  const offset = date.getTimezoneOffset() * 60000;
-  const localISOTime = new Date(date.getTime() - offset)
-    .toISOString()
-    .slice(0, -1);
-  return localISOTime.slice(0, 16);
-}
-
-function fromLocalISOString(isoString: string): Date {
-  return new Date(isoString);
-}
-
-export default withAuth(InteractiveCalendar, ["User", "Admin"]);
+export default withAuth(Calendar, ["Admin", "User"]); 

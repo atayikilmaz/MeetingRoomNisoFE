@@ -139,3 +139,13 @@ export const verify2FA = async (email: string, token: string) => {
 
   return data;
 };
+
+
+export const fetchAvailableSlots = async (roomId: string, date: string) => {
+  const baseUrl = 'http://localhost:5215/api/Meetings/available-slots';
+  const formattedDate = new Date(date).toISOString();
+  const url = `${baseUrl}?roomId=${roomId}&date=${encodeURIComponent(formattedDate)}`;
+  const response = await fetch(url);
+  const data = await response.json();
+  return data;
+};
