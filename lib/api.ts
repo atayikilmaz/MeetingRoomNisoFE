@@ -142,7 +142,7 @@ export const verify2FA = async (email: string, token: string) => {
 
 
 export const fetchAvailableSlots = async (roomId: string, date: string) => {
-  const baseUrl = 'hhttps://meetingroomappniso.onrender.com/api/Meetings/available-slots';
+  const baseUrl = 'https://meetingroomappniso.onrender.com/api/Meetings/available-slots';
   const formattedDate = new Date(date).toISOString();
   const url = `${baseUrl}?roomId=${roomId}&date=${encodeURIComponent(formattedDate)}`;
   const response = await fetch(url);
