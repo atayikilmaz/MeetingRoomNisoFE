@@ -4,6 +4,8 @@ import { useState, FormEvent } from 'react';
 import Link from 'next/link';
 import { register, verify2FA } from '@/lib/api'; // Update this path
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
+
 
 export default function Register() {
   const [email, setEmail] = useState('');
@@ -15,6 +17,8 @@ export default function Register() {
   const router = useRouter();
   const [twoFactorToken, setTwoFactorToken] = useState('');
 const [isVerifying2FA, setIsVerifying2FA] = useState(false);
+const { login, fetchUserRole } = useAuth();
+
 
   const validatePassword = (password: string) => {
     const minLength = 6;
@@ -22,6 +26,7 @@ const [isVerifying2FA, setIsVerifying2FA] = useState(false);
     const hasLowerCase = /[a-z]/.test(password);
     const hasDigit = /\d/.test(password);
     const hasNonAlphanumeric = /\W/.test(password);
+
 
     return password.length >= minLength && hasUpperCase && hasLowerCase && hasDigit && hasNonAlphanumeric;
   };
@@ -67,8 +72,14 @@ const [isVerifying2FA, setIsVerifying2FA] = useState(false);
     try {
       const response = await verify2FA(email, twoFactorToken);
       setMessage(response.message || '2FA verification successful!');
-      // The token is already stored in localStorage by the verify2FA function
-      setTimeout(() => router.push('/calendar'), 2000); // Redirect to dashboard or wherever you want after successful login
+      
+      if (response.token) {
+        localStorage.setItem('token', response.token);
+        await login(email, password); // This should update the AuthContext state
+        await fetchUserRole(); // This will fetch and set the user's role
+      }
+      
+      router.push('/calendar');
     } catch (error) {
       console.error('2FA verification error:', error);
       if (error instanceof Error) {
@@ -171,7 +182,7 @@ const [isVerifying2FA, setIsVerifying2FA] = useState(false);
           required
         />
       </div>
-      <div className="flex items-center justify-between pt-4">
+      <div className="flex items-end justify-end pt-4">
         <button
           className="btn btn-primary"
           type="submit"
