@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:5215/api/';
+const API_BASE_URL = 'https://meetingroomappniso.onrender.com/api/';
 
 async function fetchWithAuth(url: string, options: RequestInit = {}) {
   const headers: Record<string, string> = {
@@ -114,7 +114,7 @@ export async function changeUserRole(id: string, role: string) {
 }
 
 export function googleLogin() {
-  window.location.href = 'http://localhost:5215/api/Auth/google-login';
+  window.location.href = 'https://meetingroomappniso.onrender.com/api/Auth/google-login';
 }
 
 export const verify2FA = async (email: string, token: string) => {
@@ -142,7 +142,7 @@ export const verify2FA = async (email: string, token: string) => {
 
 
 export const fetchAvailableSlots = async (roomId: string, date: string) => {
-  const baseUrl = 'http://localhost:5215/api/Meetings/available-slots';
+  const baseUrl = 'hhttps://meetingroomappniso.onrender.com/api/Meetings/available-slots';
   const formattedDate = new Date(date).toISOString();
   const url = `${baseUrl}?roomId=${roomId}&date=${encodeURIComponent(formattedDate)}`;
   const response = await fetch(url);

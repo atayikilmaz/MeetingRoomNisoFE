@@ -47,7 +47,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
   
-      const response = await fetch('http://localhost:5215/api/Auth/getCurrentUserRole', {
+      const response = await fetch('https://meetingroomappniso.onrender.com/api/Auth/getCurrentUserRole', {
         headers: { 
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -83,7 +83,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password: string) => {
     try {
-      const response = await fetch('http://localhost:5215/api/Auth/login', {
+      const response = await fetch('https://meetingroomappniso.onrender.com/api/Auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -121,7 +121,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const googleLogin = () => {
-    window.location.href = 'http://localhost:5215/api/Auth/google-login';
+    window.location.href = 'https://meetingroomappniso.onrender.com/api/Auth/google-login';
   };
 
   return (
