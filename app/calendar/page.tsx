@@ -354,10 +354,12 @@ const Calendar: React.FC = () => {
   };
 
   return (
-    <div className="p-2 mx-2 sm:p-4 mt-32 bg-base-200 rounded-lg sm:mx-8">
-      <div className="bg-white shadow-lg rounded-lg overflow-hidden text-black container mx-auto p-2 sm:p-4">
-        <div className="calendar-container h-[calc(100vh-12rem)] md:h-[calc(100vh-16rem)] lg:h-[calc(100vh-20rem)]">
-          <CalendarComponent
+    <div className="p-2 mx-2 sm:p-4 mt-32 bg-base-200 rounded-xl sm:mx-8">
+    <div className="bg-white shadow-lg rounded-lg overflow-hidden text-black container mx-auto p-2 sm:p-4 ">
+      <div className="calendar-container ">
+        
+        
+         <CalendarComponent
             events={events}
             handleDateSelect={handleDateSelect}
             handleEventClick={handleEventClick}

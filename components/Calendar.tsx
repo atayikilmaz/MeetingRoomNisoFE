@@ -50,6 +50,7 @@ const CalendarComponent: React.FC<Props> = ({
         minute: '2-digit',
         omitZeroMinute: false,
         meridiem: false,
+        hour12: false
       }}
       eventTimeFormat={{
         hour: 'numeric',

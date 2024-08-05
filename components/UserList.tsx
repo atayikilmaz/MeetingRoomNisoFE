@@ -14,25 +14,35 @@ type User = {
 
 export default function UserList() {
   const [users, setUsers] = useState<User[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isChangeRoleModalOpen, setIsChangeRoleModalOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     getUsers()
       .then(data => {
-        console.log('Fetched users:', data); // Log the fetched data
+        console.log('Fetched users:', data);
         setUsers(data);
+        setFilteredUsers(data);
       })
       .catch(error => console.error('Error fetching users:', error));
   }, []);
 
-  // Function to get the display name
+  useEffect(() => {
+    const results = users.filter(user =>
+      getDisplayName(user).toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.role.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    setFilteredUsers(results);
+  }, [searchTerm, users]);
+
   const getDisplayName = (user: User) => {
     return user.name || user.userName || user.email.split('@')[0] || 'Unknown';
   };
 
-  // Function to delete a user
   const handleDeleteUser = (userId: string) => {
     deleteUser(userId)
       .then(() => {
@@ -42,7 +52,6 @@ export default function UserList() {
       .catch(error => console.error('Error deleting user:', error));
   };
 
-  // Function to change a user's role
   const handleChangeUserRole = (userId: string, newRole: string) => {
     changeUserRole(userId, newRole)
       .then(() => {
@@ -55,11 +64,28 @@ export default function UserList() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-4 ">
-      <h2 className="text-4xl font-extrabold mt-4 text-center mb-20 text-slate-100">User List</h2>
-      <div className="overflow-x-auto shadow-md sm:rounded-lg  rounded border-base-200 border-4 border-b-0 ">
-        <table className="table w-full text-sm text-left text-gray-400 dark:text-gray-400  rounded-full ">
-          <thead className="text-base text-gray-200 uppercase  dark:text-gray-200 rounded-t-lg">
+    <div className="container mx-auto px-24 py-4">
+      <h2 className="text-4xl font-extrabold mt-4 text-center mb-10 text-slate-100">User List</h2>
+      
+      {/* Search input */}
+      <div className="flex mb-4 mx-32">
+        <div className="form-control flex-grow mr-2">
+          <input
+            type="text"
+            placeholder="Search users..."
+            className="input input-bordered w-full"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        <button className="btn btn-primary">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+        </button>
+      </div>
+
+      <div className="overflow-x-auto shadow-md sm:rounded-lg rounded border-base-200 border-4 border-b-0">
+        <table className="table w-full text-sm text-left text-gray-400 dark:text-gray-400 rounded-full">
+          <thead className="text-base text-gray-200 uppercase dark:text-gray-200 rounded-t-lg">
             <tr>
               <th scope="col" className="py-3 px-6">Name</th>
               <th scope="col" className="py-3 px-6">Email</th>
@@ -68,15 +94,15 @@ export default function UserList() {
             </tr>
           </thead>
           <tbody>
-            {users.map((user) => (
-              <tr key={user.id} className="text-base border-b-4 border-base-200 dark:bg-gray-800 ">
+            {filteredUsers.map((user) => (
+              <tr key={user.id} className="text-base border-b-4 border-base-200 dark:bg-gray-800">
                 <td className="py-4 px-6">{getDisplayName(user)}</td>
                 <td className="py-4 px-6">{user.email}</td>
                 <td className="py-4 px-6">{user.role}</td>
                 <td className="py-4 px-6">
-                <div className='flex flex-col md:flex-row text-center sm:text-left'>
-                <button
-                      className="btn btn-sm btn-warning mb-2 md:mr-2 "
+                  <div className='flex flex-col md:flex-row text-center sm:text-left'>
+                    <button
+                      className="btn btn-sm btn-warning mb-2 md:mr-2"
                       onClick={() => {
                         setSelectedUser(user);
                         setIsChangeRoleModalOpen(true);
@@ -84,8 +110,8 @@ export default function UserList() {
                     >
                       Change Role
                     </button>
-                <button
-                      className="btn btn-sm btn-error "
+                    <button
+                      className="btn btn-sm btn-error"
                       onClick={() => {
                         setSelectedUser(user);
                         setIsDeleteModalOpen(true);
@@ -93,7 +119,6 @@ export default function UserList() {
                     >
                       Delete
                     </button>
-                    
                   </div>
                 </td>
               </tr>
