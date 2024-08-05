@@ -1,12 +1,14 @@
 "use client";
 
-
-// ModalComponent.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import ParticipantInputComponent from '@/components/CalendarParticipantInput';
 import TimeSlotSelectComponent from '@/components/TimeSlotSelect';
+import { getUsers } from '@/lib/api';
 
-
+interface User {
+  id: string;
+  name: string;
+}
 
 interface Props {
   isOpen: boolean;
@@ -22,12 +24,6 @@ interface Props {
   onEdit: () => void;
   onDelete: () => void;
   meetingRooms: { id: number; name: string }[];
-  participantInput: string;
-  handleParticipantInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  handleParticipantKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
-  filteredUsers: any[];
-  handleParticipantSelect: (user: any) => void;
-  selectedUserIndex: number;
   availableSlots: { startTime: string; endTime: string }[];
   selectedStartTime: string;
   setSelectedStartTime: (time: string) => void;
@@ -53,12 +49,6 @@ const ModalComponent: React.FC<Props> = ({
   onEdit,
   onDelete,
   meetingRooms,
-  participantInput,
-  handleParticipantInputChange,
-  handleParticipantKeyDown,
-  filteredUsers,
-  handleParticipantSelect,
-  selectedUserIndex,
   availableSlots,
   selectedStartTime,
   setSelectedStartTime,
@@ -69,6 +59,84 @@ const ModalComponent: React.FC<Props> = ({
   fetchAvailableTimeSlots,
   existingMeetings,
 }) => {
+  const [users, setUsers] = useState<User[]>([]);
+  const [participantInput, setParticipantInput] = useState('');
+  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
+  const [selectedUserIndex, setSelectedUserIndex] = useState(-1);
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const fetchUsers = async () => {
+    try {
+      const usersData = await getUsers();
+      setUsers(usersData);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+    }
+  };
+
+  const handleParticipantInputChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const value = e.target.value;
+    setParticipantInput(value);
+  
+    const lastCommaIndex = value.lastIndexOf(",");
+  
+    const searchTerm =
+      lastCommaIndex !== -1
+        ? value.slice(lastCommaIndex + 1).trim()
+        : value.trim();
+  
+    if (searchTerm) {
+      const filtered = users.filter((user) =>
+        user.name?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      setFilteredUsers(filtered);
+    } else {
+      setFilteredUsers(users);
+    }
+  
+    setSelectedUserIndex(-1);
+  };
+
+  const handleParticipantSelect = (user: User) => {
+    const currentInput = participantsInputRef.current?.value || "";
+    const lastCommaIndex = currentInput.lastIndexOf(",");
+    const newValue =
+      lastCommaIndex !== -1
+        ? currentInput.slice(0, lastCommaIndex + 1) + " " + user.name + ", "
+        : user.name + ", ";
+
+    if (participantsInputRef.current) {
+      participantsInputRef.current.value = newValue;
+    }
+    setParticipantInput(newValue);
+    setFilteredUsers([]);
+    setSelectedUserIndex(-1);
+  };
+
+  const handleParticipantKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>
+  ) => {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setSelectedUserIndex((prev) =>
+        prev < filteredUsers.length - 1 ? prev + 1 : prev
+      );
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setSelectedUserIndex((prev) => (prev > 0 ? prev - 1 : prev));
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (selectedUserIndex >= 0 && selectedUserIndex < filteredUsers.length) {
+        handleParticipantSelect(filteredUsers[selectedUserIndex]);
+      }
+    }
+  };
+
   useEffect(() => {
     if (event) {
       if (titleInputRef.current)
@@ -116,6 +184,7 @@ const ModalComponent: React.FC<Props> = ({
               filteredUsers={filteredUsers}
               handleParticipantSelect={handleParticipantSelect}
               selectedUserIndex={selectedUserIndex}
+              participantsInputRef={participantsInputRef}
             />
             <div className="relative">
               <select
@@ -156,14 +225,14 @@ const ModalComponent: React.FC<Props> = ({
               disabled={isViewMode}
             />
             <TimeSlotSelectComponent
-  availableSlots={availableSlots}
-  selectedStartTime={selectedStartTime}
-  setSelectedStartTime={setSelectedStartTime}
-  selectedEndTime={selectedEndTime}
-  setSelectedEndTime={setSelectedEndTime}
-  existingMeetings={existingMeetings} // Pass the existingMeetings prop
-  isRoomSelected={!!roomInputRef.current?.value} // Pass if a room is selected
-/>
+              availableSlots={availableSlots}
+              selectedStartTime={selectedStartTime}
+              setSelectedStartTime={setSelectedStartTime}
+              selectedEndTime={selectedEndTime}
+              setSelectedEndTime={setSelectedEndTime}
+              existingMeetings={existingMeetings}
+              isRoomSelected={!!roomInputRef.current?.value}
+            />
           </div>
         )}
         {isDeleteMode && (
