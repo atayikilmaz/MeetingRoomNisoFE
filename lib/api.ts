@@ -118,7 +118,7 @@ export function googleLogin() {
 }
 
 export const verify2FA = async (email: string, token: string) => {
-  const response = await fetch(`${API_BASE_URL}auth/verify-2fa`, {
+  const response = await fetch(`${API_BASE_URL}Auth/verify-2fa`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
