@@ -93,7 +93,7 @@ const { login, fetchUserRole } = useAuth();
   };
 
   return (
-    <main className="flex flex-col items-center justify-center min-h-screen bg-gray-700">
+    <main className="flex flex-col items-center justify-center min-h-screen bg-gray-700 mx-2">
 {!isVerifying2FA ? (
       <form className="w-full max-w-md bg-base-200 p-8 rounded-lg shadow-md" onSubmit={handleSubmit}>
               <div className="mb-4">

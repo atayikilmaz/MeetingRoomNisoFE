@@ -35,7 +35,7 @@ export default function Login() {
   };
 
   return (
-    <main className="flex flex-col items-center justify-center min-h-screen bg-gray-700">
+    <main className="flex flex-col items-center justify-center min-h-screen bg-gray-700 mx-2">
       <Suspense fallback={<div>Loading...</div>}>
         <HandleToken />
       </Suspense>

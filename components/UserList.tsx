@@ -64,11 +64,11 @@ export default function UserList() {
   };
 
   return (
-    <div className="container mx-auto px-24 py-4">
+    <div className="container mx-auto px-2 md:px-24 py-4">
       <h2 className="text-4xl font-extrabold mt-4 text-center mb-10 text-slate-100">User List</h2>
       
       {/* Search input */}
-      <div className="flex mb-4 mx-32">
+      <div className="flex mb-4 mx-2 md:mx-32">
         <div className="form-control flex-grow mr-2">
           <input
             type="text"
