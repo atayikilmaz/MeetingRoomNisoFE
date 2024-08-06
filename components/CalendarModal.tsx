@@ -1,13 +1,8 @@
-"use client";
 
+// ModalComponent.tsx
 import React, { useState, useEffect } from 'react';
 import ParticipantInputComponent from '@/components/CalendarParticipantInput';
 import TimeSlotSelectComponent from '@/components/TimeSlotSelect';
-
-interface User {
-  id: number;
-  name: string;
-}
 
 interface Props {
   isOpen: boolean;
@@ -23,6 +18,13 @@ interface Props {
   onEdit: () => void;
   onDelete: () => void;
   meetingRooms: { id: number; name: string }[];
+  participantInput: string;
+  setParticipantInput: React.Dispatch<React.SetStateAction<string>>;
+  handleParticipantInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  handleParticipantKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+  filteredUsers: any[];
+  handleParticipantSelect: (user: any) => void;
+  selectedUserIndex: number;
   availableSlots: { startTime: string; endTime: string }[];
   selectedStartTime: string;
   setSelectedStartTime: (time: string) => void;
@@ -48,6 +50,13 @@ const ModalComponent: React.FC<Props> = ({
   onEdit,
   onDelete,
   meetingRooms,
+  participantInput,
+  setParticipantInput,
+  handleParticipantInputChange,
+  handleParticipantKeyDown,
+  filteredUsers,
+  handleParticipantSelect,
+  selectedUserIndex,
   availableSlots,
   selectedStartTime,
   setSelectedStartTime,
@@ -62,15 +71,17 @@ const ModalComponent: React.FC<Props> = ({
     if (event) {
       if (titleInputRef.current)
         titleInputRef.current.value = event.title || "";
-      if (participantsInputRef.current)
-        participantsInputRef.current.value =
-          event.participants?.join(", ") || "";
       if (roomInputRef.current)
         roomInputRef.current.value = event.meetingRoom || "";
       if (startInputRef.current) startInputRef.current.value = event.start;
       if (endInputRef.current) endInputRef.current.value = event.end;
+      
+      // Update this line to correctly set the participant input
+      setParticipantInput(event.participants?.join(", ") || "");
+      console.log("event paricc"+event.participants);
+      
     }
-  }, [event, action]);
+  }, [event, action, setParticipantInput]);
 
   if (!isOpen) return null;
 
@@ -96,16 +107,20 @@ const ModalComponent: React.FC<Props> = ({
               placeholder="Event Title"
               className="input input-bordered w-full"
               ref={titleInputRef}
-              readOnly={isViewMode}
+              disabled={isViewMode}
             />
             <ParticipantInputComponent
-              participantsInputRef={participantsInputRef}
+              participantInput={participantInput}
+              handleParticipantInputChange={handleParticipantInputChange}
+              handleParticipantKeyDown={handleParticipantKeyDown}
+              filteredUsers={filteredUsers}
+              handleParticipantSelect={handleParticipantSelect}
+              selectedUserIndex={selectedUserIndex}
+              disabled={isViewMode}
             />
             <div className="relative">
               <select
-                className={`select select-bordered w-full ${
-                  isViewMode ? "custom-disabled" : ""
-                }`}
+                className="select select-bordered w-full"
                 ref={roomInputRef}
                 disabled={isViewMode}
                 onChange={(e) => {
@@ -147,6 +162,7 @@ const ModalComponent: React.FC<Props> = ({
               setSelectedEndTime={setSelectedEndTime}
               existingMeetings={existingMeetings}
               isRoomSelected={!!roomInputRef.current?.value}
+              disabled={isViewMode}
             />
           </div>
         )}

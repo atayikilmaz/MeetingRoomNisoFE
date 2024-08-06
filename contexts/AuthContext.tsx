@@ -121,7 +121,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const googleLogin = () => {
-    window.location.href = 'https://meetingroomappniso.onrender.com/api/Auth/google-login';
+    window.location.href = 'https://meetingroomappniso.onrender.com/zapi/Auth/google-login';
   };
 
   return (

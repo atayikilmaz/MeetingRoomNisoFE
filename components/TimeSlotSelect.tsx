@@ -1,7 +1,7 @@
 "use client"
 
 // TimeSlotSelectComponent.tsx
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect} from 'react';
 
 interface Props {
   availableSlots: { startTime: string; endTime: string }[];
@@ -11,6 +11,7 @@ interface Props {
   setSelectedEndTime: (time: string) => void;
   existingMeetings: { start: string; end: string }[];
   isRoomSelected: boolean; 
+  disabled?: boolean;
 }
 
 const TimeSlotSelectComponent: React.FC<Props> = ({
@@ -20,22 +21,50 @@ const TimeSlotSelectComponent: React.FC<Props> = ({
   selectedEndTime,
   setSelectedEndTime,
   existingMeetings,
-  isRoomSelected, // New prop
+  isRoomSelected, 
+  disabled,
 }) => {
-  const formatTimeInTurkey = (time: string) => {
+
+  
+ const formatTimeInTurkey = (time: string) => {
+  try {
+    let date;
+    if (time.includes('T')) {
+      // If it's an ISO string (e.g., "2023-06-15T14:30:00Z")
+      date = new Date(time);
+    } else if (time.includes(':')) {
+      // If it's just a time string (e.g., "14:30")
+      const [hours, minutes] = time.split(':');
+      date = new Date();
+      date.setHours(parseInt(hours, 10));
+      date.setMinutes(parseInt(minutes, 10));
+    } else {
+      // If it's a timestamp
+      date = new Date(parseInt(time, 10));
+    }
+
+    if (isNaN(date.getTime())) {
+      throw new Error('Invalid date');
+    }
+
     return new Intl.DateTimeFormat('tr-TR', {
       timeZone: 'Europe/Istanbul',
       hour: '2-digit',
       minute: '2-digit',
-    }).format(new Date(time));
-  };
+    }).format(date);
+  } catch (error) {
+    console.error('Error formatting time:', error, 'Time:', time);
+    return 'Invalid Time';
+  }
+};
+
 
   const sortedSlots = useMemo(() => {
     return availableSlots.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
   }, [availableSlots]);
 
   const availableStartTimes = useMemo(() => {
-    return sortedSlots.filter(slot => {
+    let times = sortedSlots.filter(slot => {
       const slotStart = new Date(slot.startTime);
       return !existingMeetings.some(meeting => {
         const meetingStart = new Date(meeting.start);
@@ -43,14 +72,22 @@ const TimeSlotSelectComponent: React.FC<Props> = ({
         return slotStart >= meetingStart && slotStart < meetingEnd;
       });
     }).map(slot => slot.startTime);
-  }, [sortedSlots, existingMeetings]);
+
+    // Add selectedStartTime if it's not already in the list
+    if (selectedStartTime && !times.includes(selectedStartTime)) {
+      times.push(selectedStartTime);
+      times.sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+    }
+
+    return times;
+  }, [sortedSlots, existingMeetings, selectedStartTime]);
 
   const availableEndTimes = useMemo(() => {
     if (!selectedStartTime) return [];
 
     const selectedStartDate = new Date(selectedStartTime);
     
-    return sortedSlots
+    let times = sortedSlots
       .filter(slot => {
         const slotEndDate = new Date(slot.endTime);
         if (slotEndDate <= selectedStartDate) return false;
@@ -65,7 +102,34 @@ const TimeSlotSelectComponent: React.FC<Props> = ({
         });
       })
       .map(slot => slot.endTime);
-  }, [selectedStartTime, sortedSlots, existingMeetings]);
+
+    // Add selectedEndTime if it's not already in the list
+    if (selectedEndTime && !times.includes(selectedEndTime)) {
+      times.push(selectedEndTime);
+      times.sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+    }
+
+    return times;
+  }, [selectedStartTime, selectedEndTime, sortedSlots, existingMeetings]);
+
+
+
+  useEffect(() => {
+    console.log('Selected Start Time:', selectedStartTime);
+    console.log('Available Start Times:', availableStartTimes);
+    console.log('Selected End Time:', selectedEndTime);
+    console.log('Available End Times:', availableEndTimes);
+  }, [selectedStartTime, selectedEndTime, availableStartTimes, availableEndTimes]);
+
+  useEffect(() => {
+    if (selectedStartTime && !availableStartTimes.includes(selectedStartTime)) {
+      console.warn('Selected start time is not in available start times');
+    }
+    if (selectedEndTime && !availableEndTimes.includes(selectedEndTime)) {
+      console.warn('Selected end time is not in available end times');
+    }
+  }, [selectedStartTime, selectedEndTime, availableStartTimes, availableEndTimes]);
+  
 
   return (
     <div className="flex space-x-2">
@@ -76,7 +140,9 @@ const TimeSlotSelectComponent: React.FC<Props> = ({
           setSelectedStartTime(e.target.value);
           setSelectedEndTime('');
         }}
-        disabled={!isRoomSelected} // Disable if no room is selected
+        disabled={!isRoomSelected || disabled}
+
+
       >
         <option value="">Select start time</option>
         {availableStartTimes.map((time) => (
@@ -89,7 +155,7 @@ const TimeSlotSelectComponent: React.FC<Props> = ({
         className="select select-bordered w-1/2"
         value={selectedEndTime}
         onChange={(e) => setSelectedEndTime(e.target.value)}
-        disabled={!selectedStartTime}
+        disabled={!selectedStartTime || !isRoomSelected || disabled}
       >
         <option value="">Select end time</option>
         {availableEndTimes.map((time) => (

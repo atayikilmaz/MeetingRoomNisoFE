@@ -63,7 +63,9 @@ const Calendar: React.FC = () => {
         title: meeting.name,
         start: meeting.startDateTime,
         end: meeting.endDateTime,
-        allDay: false
+        allDay: false,
+        participants: meeting.participants, // Ensure this is an array of names
+        meetingRoom: meeting.meetingRoom
       }));
       setEvents(formattedMeetings);
       
@@ -72,6 +74,8 @@ const Calendar: React.FC = () => {
         start: meeting.startDateTime,
         end: meeting.endDateTime
       })));
+      console.log("Existing meetings:", meetings);
+      
     } catch (error) {
       console.error("Error fetching meetings:", error);
     }
@@ -142,28 +146,44 @@ const Calendar: React.FC = () => {
   const handleEventClick = (clickInfo: any) => {
     const event = clickInfo.event;
     let roomId = event.extendedProps.meetingRoomId;
-
+  
     if (roomId === undefined && event.extendedProps.meetingRoom) {
       const room = meetingRooms.find(
         (room) => room.name === event.extendedProps.meetingRoom
       );
       roomId = room ? room.id : null;
     }
-
+  
+    const startDate = new Date(event.start);
+    const endDate = new Date(event.end);
+  
     const selectedEvent = {
       id: event.id,
       title: event.title,
-      start: event.start.toISOString().split('T')[0],
-      end: event.end.toISOString().split('T')[0],
+      start: startDate.toISOString().split('T')[0],
+      end: endDate.toISOString().split('T')[0],
       allDay: event.allDay,
-      participants: event.extendedProps.participants,
+      participants: event.extendedProps.participants || [],
       meetingRoom: roomId ? roomId.toString() : "",
     };
     setSelectedEvent(selectedEvent);
     setModalAction("view");
     setIsModalOpen(true);
     resetModalState(selectedEvent);
+  
+    // Set participant input
+    setParticipantInput(selectedEvent.participants.join(", "));
+  
+    // Set selected date, start time, and end time
+    setSelectedDate(selectedEvent.start);
+    setSelectedStartTime(startDate.toTimeString().slice(0, 5));
+    setSelectedEndTime(endDate.toTimeString().slice(0, 5));
+  
+    // Fetch available time slots for the selected date
+    fetchAvailableTimeSlots(selectedEvent.start);
   };
+
+
 
   const handleEventChange = async (changeInfo: any) => {
     try {
@@ -190,37 +210,35 @@ const Calendar: React.FC = () => {
           console.error("Missing date or time:", { selectedDate, selectedStartTime, selectedEndTime });
           throw new Error("Date and time must be selected");
         }
-
+  
         const start = new Date(selectedStartTime);
         const end = new Date(selectedEndTime);
-
+  
         // Check if dates are valid
         if (isNaN(start.getTime()) || isNaN(end.getTime())) {
           console.error("Invalid date or time:", { start, end });
           throw new Error("Invalid date or time");
         }
-
+  
         // Check if end time is after start time
         if (end <= start) {
           console.error("End time is not after start time:", { start, end });
           throw new Error("End time must be after start time");
         }
-
+  
         // Handle participants
-        const participantNames = participantsInputRef.current?.value
-          ? participantsInputRef.current.value
-              .split(",")
-              .map((name) => name.trim())
-              .filter((name) => name !== "")
-          : [];
-
+        const participantNames = participantInput
+          .split(",")
+          .map((name) => name.trim())
+          .filter((name) => name !== "");
+  
         const participantIds = participantNames
           .map((name) => {
             const user = users.find((u) => u.name === name);
             return user ? user.id : null;
           })
-          .filter((id): id is string => id !== null);
-
+          .filter((id): id is number => id !== null);
+  
         const meetingData = {
           name: titleInputRef.current.value,
           startDateTime: start.toISOString(),
@@ -228,9 +246,9 @@ const Calendar: React.FC = () => {
           meetingRoomId: Number(roomInputRef.current?.value || 0),
           participantIds: participantIds,
         };
-
+  
         console.log("Meeting data:", meetingData);
-
+  
         if (modalAction === "edit" && selectedEvent) {
           const id = Number(selectedEvent.id);
           await updateMeeting(id, meetingData);
@@ -267,21 +285,20 @@ const Calendar: React.FC = () => {
     if (event) {
       if (titleInputRef.current)
         titleInputRef.current.value = event.title || "";
-      if (participantsInputRef.current)
-        participantsInputRef.current.value =
-          event.participants?.join(", ") || "";
       if (roomInputRef.current)
         roomInputRef.current.value = event.meetingRoom || "";
       if (startInputRef.current) startInputRef.current.value = event.start;
       if (endInputRef.current) endInputRef.current.value = event.end;
+  
+      // Directly set the participant names
+      setParticipantInput(event.participants.join(", "));
     } else {
       if (titleInputRef.current) titleInputRef.current.value = "";
-      if (participantsInputRef.current) participantsInputRef.current.value = "";
       if (roomInputRef.current) roomInputRef.current.value = "";
       if (startInputRef.current) startInputRef.current.value = "";
       if (endInputRef.current) endInputRef.current.value = "";
+      setParticipantInput("");
     }
-    setParticipantInput(event?.participants?.join(", ") || "");
     setFilteredUsers([]);
     setSelectedUserIndex(-1);
   };
@@ -290,14 +307,15 @@ const Calendar: React.FC = () => {
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
     const value = e.target.value;
-
+    setParticipantInput(value);  // Add this line to update the state
+  
     const lastCommaIndex = value.lastIndexOf(",");
-
+  
     const searchTerm =
       lastCommaIndex !== -1
         ? value.slice(lastCommaIndex + 1).trim()
         : value.trim();
-
+  
     if (searchTerm) {
       const filtered = users.filter((user) =>
         user.name?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -306,7 +324,7 @@ const Calendar: React.FC = () => {
     } else {
       setFilteredUsers(users);
     }
-
+  
     setSelectedUserIndex(-1);
   };
 
@@ -325,32 +343,25 @@ const Calendar: React.FC = () => {
       e.preventDefault();
       if (selectedUserIndex >= 0 && selectedUserIndex < filteredUsers.length) {
         const selectedUser = filteredUsers[selectedUserIndex];
-        setParticipantInput((prev) => {
-          if (prev.includes(selectedUser.name)) {
-            return prev;
-          }
-          return `${prev}${prev ? ", " : ""}${selectedUser.name}`;
-        });
-        setFilteredUsers([]);
-        setSelectedUserIndex(-1);
+        handleParticipantSelect(selectedUser);
       }
     }
   };
 
   const handleParticipantSelect = (user: any) => {
-    const currentInput = participantsInputRef.current?.value || "";
-    const lastCommaIndex = currentInput.lastIndexOf(",");
-    const newValue =
-      lastCommaIndex !== -1
-        ? currentInput.slice(0, lastCommaIndex + 1) + " " + user.name + ", "
-        : user.name + ", ";
-
-    if (participantsInputRef.current) {
-      participantsInputRef.current.value = newValue;
-    }
-    setParticipantInput(newValue);
+    setParticipantInput((prevInput) => {
+      const parts = prevInput.split(',').map(p => p.trim());
+      
+      // Replace the last part (partial input) with the selected user's full name
+      parts[parts.length - 1] = user.name;
+      
+      // Filter out any empty parts, join, and add a comma and space at the end
+      return parts.filter(p => p !== '').join(', ') + ', ';
+    });
     setFilteredUsers([]);
     setSelectedUserIndex(-1);
+    
+    
   };
 
   return (
@@ -367,35 +378,36 @@ const Calendar: React.FC = () => {
           />
         </div>
         <ModalComponent
-          isOpen={isModalOpen}
-          onClose={handleModalClose}
-          onConfirm={handleModalConfirm}
-          action={modalAction}
-          event={selectedEvent}
-          titleInputRef={titleInputRef}
-          participantsInputRef={participantsInputRef}
-          roomInputRef={roomInputRef}
-          startInputRef={startInputRef}
-          endInputRef={endInputRef}
-          onEdit={() => setModalAction("edit")}
-          onDelete={() => setModalAction("delete")}
-          meetingRooms={meetingRooms}
-          participantInput={participantInput}
-          handleParticipantInputChange={handleParticipantInputChange}
-          handleParticipantKeyDown={handleParticipantKeyDown}
-          filteredUsers={filteredUsers}
-          handleParticipantSelect={handleParticipantSelect}
-          selectedUserIndex={selectedUserIndex}
-          availableSlots={availableSlots}
-          selectedStartTime={selectedStartTime}
-          setSelectedStartTime={setSelectedStartTime}
-          selectedEndTime={selectedEndTime}
-          setSelectedEndTime={setSelectedEndTime}
-          selectedDate={selectedDate}
-          setSelectedDate={setSelectedDate}
-          fetchAvailableTimeSlots={fetchAvailableTimeSlots}
-          existingMeetings={existingMeetings}
-        />
+  isOpen={isModalOpen}
+  onClose={handleModalClose}
+  onConfirm={handleModalConfirm}
+  action={modalAction}
+  event={selectedEvent}
+  titleInputRef={titleInputRef}
+  participantsInputRef={participantsInputRef}
+  roomInputRef={roomInputRef}
+  startInputRef={startInputRef}
+  endInputRef={endInputRef}
+  onEdit={() => setModalAction("edit")}
+  onDelete={() => setModalAction("delete")}
+  meetingRooms={meetingRooms}
+  participantInput={participantInput}
+  setParticipantInput={setParticipantInput}  // Add this line
+  handleParticipantInputChange={handleParticipantInputChange}
+  handleParticipantKeyDown={handleParticipantKeyDown}
+  filteredUsers={filteredUsers}
+  handleParticipantSelect={handleParticipantSelect}
+  selectedUserIndex={selectedUserIndex}
+  availableSlots={availableSlots}
+  selectedStartTime={selectedStartTime}
+  setSelectedStartTime={setSelectedStartTime}
+  selectedEndTime={selectedEndTime}
+  setSelectedEndTime={setSelectedEndTime}
+  selectedDate={selectedDate}
+  setSelectedDate={setSelectedDate}
+  fetchAvailableTimeSlots={fetchAvailableTimeSlots}
+  existingMeetings={existingMeetings}
+/>
       </div>
     </div>
   );
