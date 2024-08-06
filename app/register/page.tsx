@@ -20,49 +20,81 @@ const [isVerifying2FA, setIsVerifying2FA] = useState(false);
 const { login, fetchUserRole } = useAuth();
 
 
-  const validatePassword = (password: string) => {
-    const minLength = 6;
-    const hasUpperCase = /[A-Z]/.test(password);
-    const hasLowerCase = /[a-z]/.test(password);
-    const hasDigit = /\d/.test(password);
-    const hasNonAlphanumeric = /\W/.test(password);
+const validatePassword = (password: string) => {
+  const minLength = 6;
+  const hasUpperCase = /[A-Z]/.test(password);
+  const hasLowerCase = /[a-z]/.test(password);
+  const hasDigit = /\d/.test(password);
+  const hasNonAlphanumeric = /\W/.test(password);
 
+  const errors = [];
+  if (password.length < minLength) {
+    errors.push(`at least ${minLength} characters long`);
+  }
+  if (!hasUpperCase) {
+    errors.push("an uppercase letter");
+  }
+  if (!hasLowerCase) {
+    errors.push("a lowercase letter");
+  }
+  if (!hasDigit) {
+    errors.push("a number");
+  }
+  if (!hasNonAlphanumeric) {
+    errors.push("a special character");
+  }
 
-    return password.length >= minLength && hasUpperCase && hasLowerCase && hasDigit && hasNonAlphanumeric;
-  };
+  return errors.length === 0 ? null : errors;
+};
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setMessage('');
-  
-    if (!validatePassword(password)) {
-      setMessage('Password does not meet the requirements.');
-      setIsLoading(false);
-      return;
-    }
-  
-    if (password !== confirmPassword) {
-      setMessage('Passwords do not match.');
-      setIsLoading(false);
-      return;
-    }
-  
-    try {
-      await register(email, password, name);
-      setMessage('Registration successful! Please check your email for the 2FA code.');
-      setIsVerifying2FA(true);
-    } catch (error) {
-      console.error('Registration error:', error);
-      if (error instanceof Error) {
-        setMessage(`Registration failed: ${error.message}`);
+const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+  e.preventDefault();
+  setIsLoading(true);
+  setMessage('');
+
+  const passwordErrors = validatePassword(password);
+  if (passwordErrors) {
+    setMessage(`Password must contain ${passwordErrors.join(", ")}.`);
+    setIsLoading(false);
+    return;
+  }
+
+  if (password !== confirmPassword) {
+    setMessage('Passwords do not match.');
+    setIsLoading(false);
+    return;
+  }
+
+  try {
+    await register(email, password, name);
+    setMessage('Registration successful! Please check your email for the 2FA code.');
+    setIsVerifying2FA(true);
+  } catch (error) {
+    console.error('Registration error:', error);
+    if (error instanceof Error) {
+      const errorMessage = error.message;
+      const match = errorMessage.match(/API request failed: 400 (\{.*\})/);
+      if (match) {
+        try {
+          const errorObj = JSON.parse(match[1]);
+          if (errorObj[""] && errorObj[""][0]) {
+            setMessage(errorObj[""][0]);
+          } else {
+            setMessage('Registration failed: Please try again.');
+          }
+        } catch (parseError) {
+          setMessage(errorMessage);
+        }
       } else {
-        setMessage('Registration failed: An unknown error occurred');
+        setMessage(errorMessage);
       }
-    } finally {
-      setIsLoading(false);
+    } else {
+      setMessage('Registration failed: An unknown error occurred');
     }
-  };
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const handleVerify2FA = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -193,7 +225,7 @@ const { login, fetchUserRole } = useAuth();
       </div>
     </form>
   )}
-  {message && <p className="mt-4 text-center text-gray-200">{message}</p>}
+
 </main>
 );
 }

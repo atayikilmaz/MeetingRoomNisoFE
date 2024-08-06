@@ -121,7 +121,7 @@ const Calendar: React.FC = () => {
   const handleDateSelect = async (selectInfo: any) => {
     const start = new Date(selectInfo.start.getTime() + 86400000); // add one day
     const end = new Date(start.getTime() - 1);
-
+  
     const newEvent: MeetingEvent = {
       id: 0, // or some other default value
       title: '',
@@ -130,15 +130,19 @@ const Calendar: React.FC = () => {
       participants: [],
       meetingRoom: '',
     };
-
+  
     setSelectedEvent(newEvent);
     setModalAction("add");
     setIsModalOpen(true);
-
+  
     // Set the selected date
     const selectedDate = start.toISOString().split('T')[0];
     setSelectedDate(selectedDate);
-
+  
+    // Reset time-related states
+    setSelectedStartTime('');
+    setSelectedEndTime('');
+  
     // Reset other modal state
     resetModalState(newEvent);
   };
@@ -276,6 +280,9 @@ const Calendar: React.FC = () => {
     setParticipantInput("");
     setFilteredUsers([]);
     setSelectedUserIndex(-1);
+    setSelectedStartTime('');
+    setSelectedEndTime('');
+    setSelectedDate('');
     if (participantsInputRef.current) {
       participantsInputRef.current.value = "";
     }
