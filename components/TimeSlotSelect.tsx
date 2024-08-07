@@ -13,6 +13,7 @@ interface Props {
   isRoomSelected: boolean;
   selectedRoom: string;
   disabled?: boolean;
+  isNewMeeting: boolean; 
 }
 
 const TimeSlotSelectComponent: React.FC<Props> = ({
@@ -25,6 +26,7 @@ const TimeSlotSelectComponent: React.FC<Props> = ({
   isRoomSelected,
   selectedRoom,
   disabled,
+  isNewMeeting, 
 }) => {
   const formatTimeInTurkey = (time: string) => {
     try {
@@ -118,7 +120,14 @@ const TimeSlotSelectComponent: React.FC<Props> = ({
     return times;
   }, [selectedStartTime, selectedEndTime, sortedSlots, existingMeetings, selectedRoom]);
 
-  
+  useEffect(() => {
+    // Only reset selected times when the room changes if it's a new meeting
+    if (isNewMeeting) {
+      setSelectedStartTime('');
+      setSelectedEndTime('');
+    }
+  }, [selectedRoom, setSelectedStartTime, setSelectedEndTime, isNewMeeting]);
+
 
   useEffect(() => {
     console.log('Selected Start Time:', selectedStartTime);
@@ -137,12 +146,7 @@ const TimeSlotSelectComponent: React.FC<Props> = ({
   }, [selectedStartTime, selectedEndTime, availableStartTimes, availableEndTimes]);
 
 
-  useEffect(() => {
-    // Reset selected times when the room changes
-    setSelectedStartTime('');
-    setSelectedEndTime('');
-  }, [selectedRoom, setSelectedStartTime, setSelectedEndTime]);
-
+  
 
   return (
     <div className="flex space-x-2">

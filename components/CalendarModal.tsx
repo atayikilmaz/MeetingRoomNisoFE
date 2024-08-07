@@ -35,6 +35,7 @@ interface Props {
   fetchAvailableTimeSlots: (date: string) => void;
   existingMeetings: { start: string; end: string; roomId: string }[];
   isLoading: boolean;
+  
 }
 
 const ModalComponent: React.FC<Props> = ({
@@ -86,6 +87,13 @@ const ModalComponent: React.FC<Props> = ({
       
     }
   }, [event, action, setParticipantInput]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setError(null);
+    }
+  }, [isOpen]);
+
 
   if (!isOpen) return null;
 
@@ -205,6 +213,7 @@ const ModalComponent: React.FC<Props> = ({
   isRoomSelected={!!roomInputRef.current?.value}
   selectedRoom={roomInputRef.current?.value || ''}
   disabled={isViewMode}
+  isNewMeeting={action === 'add'} // Add this line
 />
           </div>
         )}
