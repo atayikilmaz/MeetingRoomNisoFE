@@ -1,7 +1,7 @@
 "use client"
 
 // TimeSlotSelectComponent.tsx
-import React, { useMemo, useEffect } from 'react';
+import React, { useMemo, useEffect, useState } from 'react';
 
 interface Props {
   availableSlots: { startTime: string; endTime: string }[];
@@ -28,6 +28,9 @@ const TimeSlotSelectComponent: React.FC<Props> = ({
   disabled,
   isNewMeeting, 
 }) => {
+
+  const [startTimeChanged, setStartTimeChanged] = useState(false);
+
   const formatTimeInTurkey = (time: string) => {
     try {
       let date;
@@ -60,6 +63,7 @@ const TimeSlotSelectComponent: React.FC<Props> = ({
     }
   };
 
+  
   const sortedSlots = useMemo(() => {
     return availableSlots.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
   }, [availableSlots]);
@@ -88,20 +92,22 @@ const TimeSlotSelectComponent: React.FC<Props> = ({
 
     const selectedStartDate = new Date(selectedStartTime);
     
+    // Find the next meeting in the same room
+    const nextMeeting = existingMeetings
+      .filter(meeting => meeting.roomId === selectedRoom)
+      .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())
+      .find(meeting => new Date(meeting.start) > selectedStartDate);
+
+    let maxEndTime = nextMeeting ? new Date(nextMeeting.start) : null;
+
     let times = sortedSlots
       .filter(slot => {
         const slotEndDate = new Date(slot.endTime);
         if (slotEndDate <= selectedStartDate) return false;
+        if (maxEndTime && slotEndDate > maxEndTime) return false;
 
         return !existingMeetings.some(meeting => {
-
-          console.log('meeting.roomIdselected:', selectedRoom);
-
-
           if (meeting.roomId !== selectedRoom) return false;
-          
-          console.log('meeting.roomId:', meeting.roomId);
-
           const meetingStart = new Date(meeting.start);
           const meetingEnd = new Date(meeting.end);
           return (
@@ -121,10 +127,12 @@ const TimeSlotSelectComponent: React.FC<Props> = ({
   }, [selectedStartTime, selectedEndTime, sortedSlots, existingMeetings, selectedRoom]);
 
   useEffect(() => {
-    // Only reset selected times when the room changes if it's a new meeting
     if (isNewMeeting) {
       setSelectedStartTime('');
       setSelectedEndTime('');
+      setStartTimeChanged(false);
+    } else {
+      setStartTimeChanged(false);
     }
   }, [selectedRoom, setSelectedStartTime, setSelectedEndTime, isNewMeeting]);
 
@@ -155,7 +163,10 @@ const TimeSlotSelectComponent: React.FC<Props> = ({
         value={selectedStartTime}
         onChange={(e) => {
           setSelectedStartTime(e.target.value);
-          setSelectedEndTime('');
+          if (!isNewMeeting) {
+            setStartTimeChanged(true);
+            setSelectedEndTime('');
+          }
         }}
         disabled={!isRoomSelected || disabled}
       >
@@ -170,7 +181,7 @@ const TimeSlotSelectComponent: React.FC<Props> = ({
         className="select select-bordered w-1/2"
         value={selectedEndTime}
         onChange={(e) => setSelectedEndTime(e.target.value)}
-        disabled={!selectedStartTime || !isRoomSelected || disabled}
+        disabled={!selectedStartTime || !isRoomSelected || disabled || (!isNewMeeting && !startTimeChanged)}
       >
         <option value="">Select end time</option>
         {availableEndTimes.map((time) => (

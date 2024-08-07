@@ -237,19 +237,19 @@ const ModalComponent: React.FC<Props> = ({
             </div>
           ) : (
             <button 
-      className="btn btn-error" 
-      onClick={handleConfirm}
-      disabled={isLoading || (action !== "delete" && !validateForm())}
-    >
-      {isLoading ? (
-        <span className="loading loading-spinner loading-sm"></span>
-      ) : null}
-      {action === "add"
-        ? "Add"
-        : action === "edit"
-        ? "Update"
-        : "Delete"}
-    </button>
+            className="btn btn-error" 
+            onClick={handleConfirm}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <span className="loading loading-spinner loading-sm"></span>
+            ) : null}
+            {action === "add"
+              ? "Add"
+              : action === "edit"
+              ? "Update"
+              : "Delete"}
+          </button>
           )}
         </div>
       </div>
