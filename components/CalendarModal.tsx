@@ -33,7 +33,8 @@ interface Props {
   selectedDate: string;
   setSelectedDate: (date: string) => void;
   fetchAvailableTimeSlots: (date: string) => void;
-  existingMeetings: { start: string; end: string }[];
+  existingMeetings: { start: string; end: string; roomId: string }[];
+  isLoading: boolean;
 }
 
 const ModalComponent: React.FC<Props> = ({
@@ -66,7 +67,10 @@ const ModalComponent: React.FC<Props> = ({
   setSelectedDate,
   fetchAvailableTimeSlots,
   existingMeetings,
+  isLoading,
 }) => {
+  const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
     if (event) {
       if (titleInputRef.current)
@@ -88,6 +92,37 @@ const ModalComponent: React.FC<Props> = ({
   const isViewMode = action === "view";
   const isDeleteMode = action === "delete";
 
+  const handleConfirm = () => {
+    if (validateForm()) {
+      onConfirm();
+    }
+  };
+
+  const validateForm = () => {
+    if (!titleInputRef.current?.value) {
+      setError("Event title is required");
+      return false;
+    }
+    if (!participantInput) {
+      setError("At least one participant is required");
+      return false;
+    }
+    if (!roomInputRef.current?.value) {
+      setError("Meeting room must be selected");
+      return false;
+    }
+    if (!selectedDate) {
+      setError("Date must be selected");
+      return false;
+    }
+    if (!selectedStartTime || !selectedEndTime) {
+      setError("Start and end times must be selected");
+      return false;
+    }
+    setError(null);
+    return true;
+  };
+
   return (
     <div className="modal modal-open text-slate-200">
       <div className="modal-box">
@@ -100,6 +135,12 @@ const ModalComponent: React.FC<Props> = ({
             ? "Delete Event"
             : "View Event"}
         </h3>
+        {error && (
+          <div className="alert alert-error mt-4">
+            <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            <span>{error}</span>
+          </div>
+        )}
         {!isDeleteMode && (
           <div className="space-y-4 mt-4">
             <input
@@ -155,15 +196,16 @@ const ModalComponent: React.FC<Props> = ({
               disabled={isViewMode}
             />
             <TimeSlotSelectComponent
-              availableSlots={availableSlots}
-              selectedStartTime={selectedStartTime}
-              setSelectedStartTime={setSelectedStartTime}
-              selectedEndTime={selectedEndTime}
-              setSelectedEndTime={setSelectedEndTime}
-              existingMeetings={existingMeetings}
-              isRoomSelected={!!roomInputRef.current?.value}
-              disabled={isViewMode}
-            />
+  availableSlots={availableSlots}
+  selectedStartTime={selectedStartTime}
+  setSelectedStartTime={setSelectedStartTime}
+  selectedEndTime={selectedEndTime}
+  setSelectedEndTime={setSelectedEndTime}
+  existingMeetings={existingMeetings}
+  isRoomSelected={!!roomInputRef.current?.value}
+  selectedRoom={roomInputRef.current?.value || ''}
+  disabled={isViewMode}
+/>
           </div>
         )}
         {isDeleteMode && (
@@ -185,7 +227,14 @@ const ModalComponent: React.FC<Props> = ({
               </button>
             </div>
           ) : (
-            <button className="btn btn-error" onClick={onConfirm}>
+            <button 
+              className="btn btn-error" 
+              onClick={handleConfirm}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <span className="loading loading-spinner loading-sm"></span>
+              ) : null}
               {action === "add"
                 ? "Add"
                 : action === "edit"

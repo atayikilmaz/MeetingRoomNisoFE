@@ -21,7 +21,7 @@ export function withAuth(WrappedComponent: React.ComponentType, allowedRoles?: s
           await fetchUserRole();
         } else if (user && user.role && allowedRoles && !allowedRoles.includes(user.role)) {
           console.log('User does not have allowed role, redirecting to unauthorized');
-          router.push('/unauthorized');
+          router.push('/login');
         }
         setIsChecking(false);
       };

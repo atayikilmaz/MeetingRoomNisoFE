@@ -40,11 +40,13 @@ const Calendar: React.FC = () => {
   const [selectedStartTime, setSelectedStartTime] = useState<string>('');
   const [selectedEndTime, setSelectedEndTime] = useState<string>('');
   const [selectedDate, setSelectedDate] = useState<string>('');
-  const [existingMeetings, setExistingMeetings] = useState<{ start: string; end: string }[]>([]);
+  const [existingMeetings, setExistingMeetings] = useState<{ start: string; end: string; roomId: string;}[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
 
   useEffect(() => {
-    fetchMeetings();
     fetchMeetingRooms();
+    fetchMeetings();
     fetchUsers();
   }, []);
 
@@ -58,6 +60,8 @@ const Calendar: React.FC = () => {
   const fetchMeetings = async () => {
     try {
       const meetings = await getMeetings();
+      console.log("Meetingsssss:", meetings);
+
       const formattedMeetings = meetings.map((meeting: any) => ({
         id: meeting.id,
         title: meeting.name,
@@ -72,9 +76,10 @@ const Calendar: React.FC = () => {
       // Set existingMeetings
       setExistingMeetings(meetings.map((meeting: any) => ({
         start: meeting.startDateTime,
-        end: meeting.endDateTime
+        end: meeting.endDateTime,
+        roomId: meeting.meetingRoomId.toString()
       })));
-      console.log("Existing meetings:", meetings);
+
       
     } catch (error) {
       console.error("Error fetching meetings:", error);
@@ -100,8 +105,8 @@ const Calendar: React.FC = () => {
   };
 
   const fetchAvailableTimeSlots = async (date: string) => {
-    console.log("fetchAvailableTimeSlots called with date:", date);
     const roomId = roomInputRef.current?.value;
+    
     if (roomId) {
       try {
         console.log("Fetching slots for room:", roomId);
@@ -208,6 +213,8 @@ const Calendar: React.FC = () => {
 
   const handleModalConfirm = async () => {
     if ((modalAction === "add" || modalAction === "edit") && titleInputRef.current) {
+      setIsLoading(true);
+
       try {
         // Validate date and time inputs
         if (!selectedDate || !selectedStartTime || !selectedEndTime) {
@@ -263,6 +270,8 @@ const Calendar: React.FC = () => {
       } catch (error) {
         console.error("Error saving meeting:", error);
         return; // Exit the function early if there's an error
+      }finally {
+        setIsLoading(false);
       }
     } else if (modalAction === "delete" && selectedEvent) {
       try {
@@ -414,6 +423,7 @@ const Calendar: React.FC = () => {
   setSelectedDate={setSelectedDate}
   fetchAvailableTimeSlots={fetchAvailableTimeSlots}
   existingMeetings={existingMeetings}
+  isLoading={isLoading}
 />
       </div>
     </div>
