@@ -6,6 +6,7 @@ import CalendarComponent from '@/components/Calendar';
 import ModalComponent from '@/components/CalendarModal';
 import { getMeetings, createMeeting, updateMeeting, deleteMeeting, getMeetingRooms, getUsers, fetchAvailableSlots } from '@/lib/api';
 import { withAuth } from '@/components/WithAuth';
+import { log } from 'console';
 
 
 interface MeetingEvent {
@@ -15,6 +16,12 @@ interface MeetingEvent {
   end: string;
   participants: string[];
   meetingRoom: string;
+}
+
+interface Room {
+  id: number;
+  name: string;
+  // Add other properties if needed
 }
 
 const Calendar: React.FC = () => {
@@ -40,8 +47,10 @@ const Calendar: React.FC = () => {
   const [selectedStartTime, setSelectedStartTime] = useState<string>('');
   const [selectedEndTime, setSelectedEndTime] = useState<string>('');
   const [selectedDate, setSelectedDate] = useState<string>('');
-  const [existingMeetings, setExistingMeetings] = useState<{ start: string; end: string; roomId: string;}[]>([]);
+  const [existingMeetings, setExistingMeetings] = useState<{ start: string; end: string; roomId: string; id: number}[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+
+  const [roomColors, setRoomColors] = useState<{[key: string]: string}>({});
 
 
   useEffect(() => {
@@ -60,7 +69,6 @@ const Calendar: React.FC = () => {
   const fetchMeetings = async () => {
     try {
       const meetings = await getMeetings();
-      console.log("Meetingsssss:", meetings);
 
       const formattedMeetings = meetings.map((meeting: any) => ({
         id: meeting.id,
@@ -68,8 +76,10 @@ const Calendar: React.FC = () => {
         start: meeting.startDateTime,
         end: meeting.endDateTime,
         allDay: false,
-        participants: meeting.participants, // Ensure this is an array of names
-        meetingRoom: meeting.meetingRoom
+        participants: meeting.participants,
+        meetingRoom: meeting.meetingRoom,
+        meetingRoomId: meeting.meetingRoomId,
+        color: roomColors[meeting.meetingRoomId] // Assign color based on room
       }));
       setEvents(formattedMeetings);
       
@@ -77,10 +87,9 @@ const Calendar: React.FC = () => {
       setExistingMeetings(meetings.map((meeting: any) => ({
         start: meeting.startDateTime,
         end: meeting.endDateTime,
-        roomId: meeting.meetingRoomId.toString()
+        roomId: meeting.meetingRoomId.toString(),
+        id: meeting.id
       })));
-
-      
     } catch (error) {
       console.error("Error fetching meetings:", error);
     }
@@ -88,8 +97,26 @@ const Calendar: React.FC = () => {
 
   const fetchMeetingRooms = async () => {
     try {
-      const rooms = await getMeetingRooms();
+      const rooms: Room[] = await getMeetingRooms();
       setMeetingRooms(rooms);
+      
+      // Predefined colors - you can add more if needed
+      const colors = [
+        '#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', 
+        '#F7DC6F', '#BB8FCE', '#7FB3D5', '#E59866', '#DAF7A6',
+        '#FF9FF3', '#00CED1', '#FFA500', '#20B2AA', '#DDA0DD',
+        '#32CD32', '#FF4500', '#1E90FF', '#FFD700', '#8A2BE2'
+      ];
+  
+      const newRoomColors: {[key: number]: string} = {};
+  
+      rooms.forEach((room: Room) => {
+        // Use the room's ID to deterministically select a color
+        const colorIndex = room.id % colors.length;
+        newRoomColors[room.id] = colors[colorIndex];
+      });
+  
+      setRoomColors(newRoomColors);
     } catch (error) {
       console.error("Error fetching meeting rooms:", error);
     }
@@ -110,7 +137,8 @@ const Calendar: React.FC = () => {
     if (roomId) {
       try {
         console.log("Fetching slots for room:", roomId);
-        const slots = await fetchAvailableSlots(roomId, date);
+        const excludeMeetingId = modalAction === "edit" ? selectedEvent?.id : undefined;
+        const slots = await fetchAvailableSlots(roomId, date, excludeMeetingId);
         console.log("Fetched slots:", slots);
         setAvailableSlots(slots);
       } catch (error) {
@@ -176,6 +204,7 @@ const Calendar: React.FC = () => {
       meetingRoom: roomId ? roomId.toString() : "",
     };
     setSelectedEvent(selectedEvent);
+    
     setModalAction("view");
     setIsModalOpen(true);
     resetModalState(selectedEvent);
@@ -204,6 +233,9 @@ const Calendar: React.FC = () => {
         meetingRoomId: changeInfo.event.extendedProps.meetingRoomId,
         participantIds: changeInfo.event.extendedProps.participants, // Keep as strings
       };
+     
+    
+      
       await updateMeeting(id, updatedEvent);
       fetchMeetings();
     } catch (error) {
@@ -214,7 +246,11 @@ const Calendar: React.FC = () => {
   const handleModalConfirm = async () => {
     if ((modalAction === "add" || modalAction === "edit") && titleInputRef.current) {
       setIsLoading(true);
-
+  
+      console.log("Selected modate:", selectedDate);
+      console.log("Selected mostart time:", selectedStartTime);
+      console.log("Selected moend time:", selectedEndTime);
+  
       try {
         // Validate date and time inputs
         if (!selectedDate || !selectedStartTime || !selectedEndTime) {
@@ -222,8 +258,25 @@ const Calendar: React.FC = () => {
           throw new Error("Date and time must be selected");
         }
   
-        const start = new Date(selectedStartTime);
-        const end = new Date(selectedEndTime);
+        // Function to parse time string and combine with date
+        const parseDateTime = (dateStr: string, timeStr: string): Date => {
+          if (timeStr.includes('T')) {
+            // If it's already an ISO string, just parse it
+            return new Date(timeStr);
+          } else {
+            // If it's in "HH:MM" format, combine with the date
+            const [hours, minutes] = timeStr.split(':');
+            const dateTime = new Date(dateStr);
+            dateTime.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
+            return dateTime;
+          }
+        };
+  
+        const start = parseDateTime(selectedDate, selectedStartTime);
+        const end = parseDateTime(selectedDate, selectedEndTime);
+  
+        console.log("Start time:", start);
+        console.log("End time:", end);
   
         // Check if dates are valid
         if (isNaN(start.getTime()) || isNaN(end.getTime())) {
@@ -270,7 +323,7 @@ const Calendar: React.FC = () => {
       } catch (error) {
         console.error("Error saving meeting:", error);
         return; // Exit the function early if there's an error
-      }finally {
+      } finally {
         setIsLoading(false);
       }
     } else if (modalAction === "delete" && selectedEvent) {
@@ -391,6 +444,7 @@ const Calendar: React.FC = () => {
             handleDateSelect={handleDateSelect}
             handleEventClick={handleEventClick}
             handleEventChange={handleEventChange}
+            roomColors={roomColors} // Pass roomColors to CalendarComponent
           />
         </div>
         <ModalComponent
@@ -424,6 +478,7 @@ const Calendar: React.FC = () => {
   fetchAvailableTimeSlots={fetchAvailableTimeSlots}
   existingMeetings={existingMeetings}
   isLoading={isLoading}
+  selectedEventId={selectedEvent?.id || 0}
 />
       </div>
     </div>

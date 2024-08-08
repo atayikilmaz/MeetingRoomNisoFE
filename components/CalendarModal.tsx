@@ -33,8 +33,9 @@ interface Props {
   selectedDate: string;
   setSelectedDate: (date: string) => void;
   fetchAvailableTimeSlots: (date: string) => void;
-  existingMeetings: { start: string; end: string; roomId: string }[];
+  existingMeetings: { start: string; end: string; roomId: string; id: number }[];
   isLoading: boolean;
+  selectedEventId: number;
   
 }
 
@@ -69,6 +70,7 @@ const ModalComponent: React.FC<Props> = ({
   fetchAvailableTimeSlots,
   existingMeetings,
   isLoading,
+  selectedEventId,
 }) => {
   const [error, setError] = useState<string | null>(null);
 
@@ -83,7 +85,6 @@ const ModalComponent: React.FC<Props> = ({
       
       // Update this line to correctly set the participant input
       setParticipantInput(event.participants?.join(", ") || "");
-      console.log("event paricc"+event.participants);
       
     }
   }, [event, action, setParticipantInput]);
@@ -214,6 +215,7 @@ const ModalComponent: React.FC<Props> = ({
   selectedRoom={roomInputRef.current?.value || ''}
   disabled={isViewMode}
   isNewMeeting={action === 'add'} // Add this line
+  selectedEventId={selectedEventId} // Add this line
 />
           </div>
         )}

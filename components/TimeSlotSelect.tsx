@@ -9,11 +9,12 @@ interface Props {
   setSelectedStartTime: (time: string) => void;
   selectedEndTime: string;
   setSelectedEndTime: (time: string) => void;
-  existingMeetings: { start: string; end: string; roomId: string }[];
+  existingMeetings: { start: string; end: string; roomId: string; id: number}[];
   isRoomSelected: boolean;
   selectedRoom: string;
   disabled?: boolean;
   isNewMeeting: boolean; 
+  selectedEventId: number;
 }
 
 const TimeSlotSelectComponent: React.FC<Props> = ({
@@ -27,6 +28,7 @@ const TimeSlotSelectComponent: React.FC<Props> = ({
   selectedRoom,
   disabled,
   isNewMeeting, 
+  selectedEventId,
 }) => {
 
   const [startTimeChanged, setStartTimeChanged] = useState(false);
@@ -97,7 +99,7 @@ const TimeSlotSelectComponent: React.FC<Props> = ({
       .filter(meeting => meeting.roomId === selectedRoom)
       .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())
       .find(meeting => new Date(meeting.start) > selectedStartDate);
-
+      
     let maxEndTime = nextMeeting ? new Date(nextMeeting.start) : null;
 
     let times = sortedSlots
@@ -139,9 +141,8 @@ const TimeSlotSelectComponent: React.FC<Props> = ({
 
   useEffect(() => {
     console.log('Selected Start Time:', selectedStartTime);
-    console.log('Available Start Times:', availableStartTimes);
     console.log('Selected End Time:', selectedEndTime);
-    console.log('Available End Times:', availableEndTimes);
+
   }, [selectedStartTime, selectedEndTime, availableStartTimes, availableEndTimes]);
 
   useEffect(() => {
